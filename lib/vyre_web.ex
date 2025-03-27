@@ -17,7 +17,9 @@ defmodule VyreWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths,
+    do:
+      ~w(assets fonts images favicon.ico apple-touch-icon.png favicon-16x16.png favicon-32x32.png robots.txt)
 
   def router do
     quote do
