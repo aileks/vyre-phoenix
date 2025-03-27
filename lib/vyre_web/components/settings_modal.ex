@@ -53,15 +53,12 @@ defmodule VyreWeb.Components.SettingsModal do
   def render(assigns) do
     ~H"""
     <div>
-      <.modal id="settings-modal" show={@is_open} on_cancel={JS.patch(@return_to)}>
-        <div class="bg-midnight-800 text-cybertext-200">
-          <h2 class="text-xl font-mono mb-4">Settings</h2>
-
-          <div class="flex flex-1 overflow-hidden" style="height: 60vh;">
-            <!-- Settings Sidebar -->
-            <div class="bg-midnight-900 w-48 border-r border-gray-700">
-              <div class="flex flex-col">
-                <%= for {tab, label} <- [
+      <.modal id="settings-modal" title="Settings" show={@is_open} on_cancel={JS.patch(@return_to)}>
+        <div class="flex flex-1 h-[60vh]">
+          <!-- Settings Sidebar -->
+          <div class="bg-midnight-900 w-48 border-r border-gray-700 h-full flex flex-col">
+            <div class="flex flex-col h-full">
+              <%= for {tab, label} <- [
                 {"appearance", "Appearance"},
                 {"notifications", "Notifications"},
                 {"privacy", "Privacy"},
@@ -69,42 +66,41 @@ defmodule VyreWeb.Components.SettingsModal do
                 {"accessibility", "Accessibility"},
                 {"about", "About"}
               ] do %>
-                  <button
-                    phx-click="set_tab"
-                    phx-value-tab={tab}
-                    phx-target={@myself}
-                    class={[
-                      "hover:bg-midnight-500 mt-1 px-4 py-3 text-left transition-colors duration-200",
-                      @active_tab == tab && "bg-midnight-500 text-primary-400",
-                      @active_tab != tab && "text-cybertext-400"
-                    ]}
-                  >
-                    {label}
-                  </button>
-                <% end %>
-              </div>
-            </div>
-            
-    <!-- Settings Content -->
-            <div class="flex-1 overflow-y-auto p-6">
-              <%= case @active_tab do %>
-                <% "appearance" -> %>
-                  <.appearance_tab settings={@settings.appearance} myself={@myself} />
-                <% "notifications" -> %>
-                  <.notifications_tab settings={@settings.notifications} myself={@myself} />
-                <% "privacy" -> %>
-                  <.privacy_tab settings={@settings.privacy} myself={@myself} />
-                <% "blocked" -> %>
-                  <.blocked_tab blocked_users={@blocked_users} myself={@myself} />
-                <% "accessibility" -> %>
-                  <.accessibility_tab settings={@settings.accessibility} myself={@myself} />
-                <% "about" -> %>
-                  <.about_tab />
+                <button
+                  phx-click="set_tab"
+                  phx-value-tab={tab}
+                  phx-target={@myself}
+                  class={[
+                    "hover:bg-midnight-500 mt-1 px-4 py-3 text-left transition-colors duration-200",
+                    @active_tab == tab && "bg-midnight-500 text-primary-400",
+                    @active_tab != tab && "text-cybertext-400"
+                  ]}
+                >
+                  {label}
+                </button>
               <% end %>
             </div>
           </div>
 
-          <div class="flex justify-end mt-4">
+          <div class="flex-1 overflow-y-auto p-6">
+            <!-- Settings Content -->
+            <%= case @active_tab do %>
+              <% "appearance" -> %>
+                <.appearance_tab settings={@settings.appearance} myself={@myself} />
+              <% "notifications" -> %>
+                <.notifications_tab settings={@settings.notifications} myself={@myself} />
+              <% "privacy" -> %>
+                <.privacy_tab settings={@settings.privacy} myself={@myself} />
+              <% "blocked" -> %>
+                <.blocked_tab blocked_users={@blocked_users} myself={@myself} />
+              <% "accessibility" -> %>
+                <.accessibility_tab settings={@settings.accessibility} myself={@myself} />
+              <% "about" -> %>
+                <.about_tab />
+            <% end %>
+          </div>
+
+          <div class="self-end p-2">
             <%= if @has_changes do %>
               <div class="text-warning-400 mr-auto flex items-center text-sm">
                 <svg
@@ -186,6 +182,7 @@ defmodule VyreWeb.Components.SettingsModal do
         <label class="text-cybertext-300 mb-2 block">
           Message Density
         </label>
+
         <div class="flex gap-3">
           <%= for density <- ["compact", "comfortable"] do %>
             <button
@@ -216,9 +213,9 @@ defmodule VyreWeb.Components.SettingsModal do
           phx-value-category="appearance"
           phx-value-setting="animations_enabled"
           phx-target={@myself}
-          class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+          class="accent-verdant-500"
         />
-        <label for="animations-toggle" class="text-cybertext-300 ml-2">
+        <label for="animations-toggle" class="ml-2">
           Enable animations
         </label>
       </div>
@@ -243,7 +240,7 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="notifications"
             phx-value-setting="sounds"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
 
@@ -256,7 +253,7 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="notifications"
             phx-value-setting="desktop_notifications"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
 
@@ -269,7 +266,7 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="notifications"
             phx-value-setting="mentions_only"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
       </div>
@@ -325,8 +322,9 @@ defmodule VyreWeb.Components.SettingsModal do
               phx-value-category="privacy"
               phx-value-setting="show_status"
               phx-target={@myself}
-              class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+              class="accent-verdant-500"
             />
+
             <label for="status-toggle" class="text-cybertext-500 ml-2 text-sm">
               Others can see when you're online
             </label>
@@ -369,8 +367,9 @@ defmodule VyreWeb.Components.SettingsModal do
               phx-value-category="privacy"
               phx-value-setting="display_current_activity"
               phx-target={@myself}
-              class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+              class="accent-verdant-500"
             />
+
             <label for="activity-toggle" class="text-cybertext-500 ml-2 text-sm">
               Display your current activity to others
             </label>
@@ -436,6 +435,7 @@ defmodule VyreWeb.Components.SettingsModal do
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <label class="text-cybertext-300">Reduced motion</label>
+
           <input
             type="checkbox"
             checked={@settings.reduced_motion}
@@ -443,12 +443,13 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="accessibility"
             phx-value-setting="reduced_motion"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
 
         <div class="flex items-center justify-between">
           <label class="text-cybertext-300">High contrast mode</label>
+
           <input
             type="checkbox"
             checked={@settings.high_contrast}
@@ -456,12 +457,13 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="accessibility"
             phx-value-setting="high_contrast"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
 
         <div class="flex items-center justify-between">
           <label class="text-cybertext-300">Screen reader optimized</label>
+
           <input
             type="checkbox"
             checked={@settings.screen_reader_optimized}
@@ -469,7 +471,7 @@ defmodule VyreWeb.Components.SettingsModal do
             phx-value-category="accessibility"
             phx-value-setting="screen_reader_optimized"
             phx-target={@myself}
-            class="bg-midnight-900 text-electric-600 h-4 w-4 rounded-xs border-gray-700"
+            class="accent-verdant-500"
           />
         </div>
       </div>
@@ -540,7 +542,7 @@ defmodule VyreWeb.Components.SettingsModal do
 
   # Event handlers
   def handle_event("close", _, socket) do
-    send(self(), {:close_commands})
+    send(socket.parent_pid, {:close_settings})
     {:noreply, socket}
   end
 

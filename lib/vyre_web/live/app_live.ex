@@ -18,8 +18,6 @@ defmodule VyreWeb.AppLive do
       socket
       |> assign(:current_path, URI.parse(uri).path)
       |> assign(:channel_id, params["channel_id"])
-      |> assign(:show_settings, params["settings"] == "true")
-      |> assign(:show_commands, params["commands"] == "true")
 
     {:noreply, socket}
   end
@@ -47,7 +45,7 @@ defmodule VyreWeb.AppLive do
         />
       <% end %>
 
-      <%= if @show_settings do %>
+      <%= if @show_commands do %>
         <.live_component
           module={VyreWeb.Components.CommandsModal}
           id="commands-modal"
@@ -59,11 +57,27 @@ defmodule VyreWeb.AppLive do
     """
   end
 
+  def handle_event("close_modal", %{"id" => "settings-modal"}, socket) do
+    {:noreply, assign(socket, show_settings: false)}
+  end
+
+  def handle_event("close_modal", %{"id" => "commands-modal"}, socket) do
+    {:noreply, assign(socket, show_commands: false)}
+  end
+
   def handle_info({:open_commands}, socket) do
-    {:noreply, assign(socket, show_commands: true)}
+    {:noreply, assign(socket, show_commands: true, show_settings: false)}
   end
 
   def handle_info({:open_settings}, socket) do
-    {:noreply, assign(socket, show_settings: true)}
+    {:noreply, assign(socket, show_settings: true, show_commands: false)}
+  end
+
+  def handle_info({:close_commands}, socket) do
+    {:noreply, assign(socket, show_commands: false)}
+  end
+
+  def handle_info({:close_settings}, socket) do
+    {:noreply, assign(socket, show_settings: false)}
   end
 end

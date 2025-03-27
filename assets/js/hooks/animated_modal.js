@@ -1,7 +1,6 @@
 const AnimatedModal = {
   mounted() {
     this.handleShow = (e) => {
-      console.log("Show modal event", e);
       const modalContent = this.el.querySelector(".phx-modal-content");
       const modalOverlay = this.el.querySelector(".phx-modal-overlay");
 
@@ -12,7 +11,6 @@ const AnimatedModal = {
     };
 
     this.handleClose = (e) => {
-      console.log("Close modal event", e);
       if (e.detail?.disabled) return;
 
       // Prevent immediate close

@@ -118,12 +118,13 @@ defmodule VyreWeb.Components.CommandsModal do
   def render(assigns) do
     ~H"""
     <div>
-      <.modal id="commands-modal" show={@is_open} on_cancel={JS.patch(@return_to)}>
-        <div class="bg-midnight-800 text-cybertext-200">
-          <h2 class="text-xl font-mono mb-4">
-            <span class="command-prefix">/</span> Chat Commands
-          </h2>
-
+      <.modal
+        id="commands-modal"
+        title="Chat Commands"
+        show={@is_open}
+        on_cancel={JS.patch(@return_to)}
+      >
+        <div class="relative">
           <div class="border-b border-gray-700 p-4">
             <input
               type="text"
@@ -193,8 +194,7 @@ defmodule VyreWeb.Components.CommandsModal do
 
           <div class="text-cybertext-500 border-t border-gray-700 p-3 text-sm">
             Tip: You can use <span class="text-primary-400 font-mono">/help [command]</span>
-            in chat to
-            quickly see usage information
+            in chat to quickly see usage information
           </div>
         </div>
       </.modal>
@@ -202,6 +202,7 @@ defmodule VyreWeb.Components.CommandsModal do
     """
   end
 
+  # Event handlers
   def handle_event("close", _, socket) do
     send(self(), {:close_commands})
     {:noreply, socket}

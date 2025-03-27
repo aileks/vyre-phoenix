@@ -50,41 +50,48 @@ defmodule VyreWeb.CoreComponents do
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       class="relative z-50 hidden"
     >
+      <div id={"#{@id}-bg"} class="modal-overlay fixed inset-0" aria-hidden="true" />
       <div
-        id={"#{@id}-bg"}
-        class="bg-midnight-50/90 fixed inset-0 transition-opacity"
-        aria-hidden="true"
-      />
-      <div
-        class="fixed inset-0 overflow-y-auto"
+        class="modal-container fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"
         aria-modal="true"
         tabindex="0"
       >
-        <div class="flex min-h-full items-center justify-center">
-          <div class="w-full max-w-3xl p-4 sm:p-6 lg:py-8">
+        <div class="flex min-h-full items-center justify-center w-full">
+          <div class="w-full max-w-1/3 p-4">
             <.focus_wrap
               id={"#{@id}-container"}
-              phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+              phx-window-keydown={
+                JS.push("close_modal", value: %{id: @id, key: true})
+                |> JS.exec("data-cancel", to: "##{@id}")
+              }
               phx-key="escape"
-              phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
-              class="shadow-midnight-700/10 ring-midnight-700/10 relative hidden rounded-2xl p-14 shadow-lg ring-1 transition"
+              phx-click-away={
+                JS.push("close_modal", value: %{id: @id, click_away: true})
+                |> JS.exec("data-cancel", to: "##{@id}")
+              }
+              class="modal-content bg-midnight-800 relative hidden rounded-xs border border-gray-700 text-cybertext-200"
             >
-              <div class="absolute top-6 right-5">
+              <div class="modal-header flex items-center justify-between border-b border-gray-700 px-4 py-3 bg-midnight-900">
+                <h3 class="modal-title text-xl font-mono">
+                  {if assigns[:title], do: @title}
+                </h3>
+
                 <button
-                  phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                  phx-click={
+                    JS.push("close_modal", value: %{id: @id}) |> JS.exec("data-cancel", to: "##{@id}")
+                  }
                   type="button"
-                  class="-m-3 flex-none p-3 opacity-20 hover:opacity-40"
+                  class="text-gray-300 hover:text-cybertext-100 transition-colors duration-200 cursor-pointer"
                   aria-label={gettext("close")}
                 >
-                  <.icon name="hero-x-mark-solid" class="h-5 w-5" />
+                  <Heroicons.icon name="x-circle" class="h-5 w-5" />
                 </button>
               </div>
-              <div id={"#{@id}-content"}>
-                {render_slot(@inner_block)}
-              </div>
+
+              {render_slot(@inner_block)}
             </.focus_wrap>
           </div>
         </div>
@@ -323,7 +330,7 @@ defmodule VyreWeb.CoreComponents do
           name={@name}
           value="true"
           checked={@checked}
-          class="rounded-xs accent-verdant-500 focus:ring-0"
+          class="rounded-xs accent-verdant-500"
           {@rest}
         />
         {@label}
@@ -341,7 +348,7 @@ defmodule VyreWeb.CoreComponents do
       <select
         id={@id}
         name={@name}
-        class="mt-2 block w-full rounded-md border border-gray-300 shadow-sm focus:ring-0 sm:text-sm"
+        class="mt-2 block w-full rounded-md border border-gray-300 shadow-sm  sm:text-sm"
         multiple={@multiple}
         {@rest}
       >
@@ -361,7 +368,7 @@ defmodule VyreWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "mt-2 block w-full rounded-lg text-midnight-800 focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem]",
+          "mt-2 block w-full rounded-lg text-midnight-800 focus:ring-2 sm:text-sm sm:leading-6 min-h-[6rem]",
           @errors == [] && "border-gray-700 focus:border-gray-600",
           @errors != [] && "border-error-400 focus:border-error-400"
         ]}
@@ -383,7 +390,7 @@ defmodule VyreWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "mt-2 block w-full rounded-xs border px-3 py-2 focus:ring-0 sm:text-sm sm:leading-6",
+          "mt-2 block w-full rounded-xs border px-3 py-2  sm:text-sm sm:leading-6",
           @errors == [] && "border-gray-700 focus:border-gray-600",
           @errors != [] && "border-error-400 focus:border-error-400"
         ]}
@@ -627,15 +634,17 @@ defmodule VyreWeb.CoreComponents do
     )
   end
 
-  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+  def show_modal(js \\ %JS{}, id) do
     js
     |> JS.show(to: "##{id}")
     |> JS.show(
       to: "##{id}-bg",
-      time: 300,
-      transition: {"transition-all transform ease-out duration-300", "opacity-0", "opacity-100"}
+      transition: {"animate-fade-in", "opacity-0", "opacity-100"}
     )
-    |> show("##{id}-container")
+    |> JS.show(
+      to: "##{id}-container",
+      transition: {"animate-scale-in", "opacity-0 scale-95", "opacity-100 scale-100"}
+    )
     |> JS.add_class("overflow-hidden", to: "body")
     |> JS.focus_first(to: "##{id}-content")
   end
@@ -644,9 +653,12 @@ defmodule VyreWeb.CoreComponents do
     js
     |> JS.hide(
       to: "##{id}-bg",
-      transition: {"transition-all transform ease-in duration-200", "opacity-100", "opacity-0"}
+      transition: {"modal-exit", "opacity-100", "opacity-0"}
     )
-    |> hide("##{id}-container")
+    |> JS.hide(
+      to: "##{id}-container",
+      transition: {"modal-content-exit", "opacity-100 scale-100", "opacity-0 scale-95"}
+    )
     |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"})
     |> JS.remove_class("overflow-hidden", to: "body")
     |> JS.pop_focus()
