@@ -6,7 +6,7 @@ It's built to be fast, secure, and easy to use without sacrificing scalability o
 
 ![Landing Page](./img/landing.png)
 
-Check out the [Wiki](https://github.com/aileks/Vyre/wiki)!
+<!-- Check out the [Wiki](https://github.com/aileks/Vyre/wiki)! -->
 
 ### Feature Goals
 
