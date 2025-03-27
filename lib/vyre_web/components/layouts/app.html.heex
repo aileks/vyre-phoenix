@@ -14,18 +14,3 @@
     </main>
   </div>
 </div>
-
-<!-- Modal placeholders - we'll implement the actual modals later -->
-<.live_component
-  module={VyreWeb.Components.SettingsModal}
-  id="settings-modal"
-  is_open={@show_settings}
-  return_to={~p"/app"}
-/>
-
-<.live_component
-  module={VyreWeb.Components.CommandsModal}
-  id="commands-modal"
-  is_open={@show_commands}
-  return_to={~p"/app"}
-/>

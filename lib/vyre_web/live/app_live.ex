@@ -43,27 +43,27 @@ defmodule VyreWeb.AppLive do
           module={VyreWeb.Components.SettingsModal}
           id="settings-modal"
           is_open={true}
-          return_to={~p"/app"}
+          return_to={@current_path}
         />
       <% end %>
 
-      <%= if @show_commands do %>
+      <%= if @show_settings do %>
         <.live_component
           module={VyreWeb.Components.CommandsModal}
           id="commands-modal"
           is_open={true}
-          return_to={~p"/app"}
+          return_to={@current_path}
         />
       <% end %>
     </div>
     """
   end
 
-  def handle_event("open_settings", _, socket) do
-    {:noreply, assign(socket, show_settings: true)}
+  def handle_info({:open_commands}, socket) do
+    {:noreply, assign(socket, show_commands: true)}
   end
 
-  def handle_event("open_commands", _, socket) do
-    {:noreply, assign(socket, show_commands: true)}
+  def handle_info({:open_settings}, socket) do
+    {:noreply, assign(socket, show_settings: true)}
   end
 end

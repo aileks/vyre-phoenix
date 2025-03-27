@@ -540,7 +540,8 @@ defmodule VyreWeb.Components.SettingsModal do
 
   # Event handlers
   def handle_event("close", _, socket) do
-    {:noreply, push_patch(socket, to: socket.assigns.return_to || "/")}
+    send(self(), {:close_commands})
+    {:noreply, socket}
   end
 
   def handle_event("set_tab", %{"tab" => tab}, socket) do

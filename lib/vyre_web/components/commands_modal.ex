@@ -203,7 +203,8 @@ defmodule VyreWeb.Components.CommandsModal do
   end
 
   def handle_event("close", _, socket) do
-    {:noreply, push_patch(socket, to: socket.assigns.return_to || "/")}
+    send(self(), {:close_commands})
+    {:noreply, socket}
   end
 
   def handle_event("search", %{"value" => search_text}, socket) do

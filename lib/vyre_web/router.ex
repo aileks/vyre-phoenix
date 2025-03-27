@@ -70,8 +70,6 @@ defmodule VyreWeb.Router do
       live "/", AppLive, :index
       live "/friends", AppLive, :friends
       live "/channels/:channel_id", AppLive, :channels
-      live "/settings", AppLive, :settings
-      live "/commands", AppLive, :commands
     end
   end
 

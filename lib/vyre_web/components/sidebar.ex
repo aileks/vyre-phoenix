@@ -247,11 +247,13 @@ defmodule VyreWeb.Components.Sidebar do
     {:noreply, assign(socket, servers_expanded: !socket.assigns.servers_expanded)}
   end
 
-  def handle_event("open_settings", _, socket) do
-    {:noreply, push_patch(socket, to: ~p"/app/settings")}
+  def handle_event("open_commands", _, socket) do
+    send(self(), {:open_commands})
+    {:noreply, socket}
   end
 
-  def handle_event("open_commands", _, socket) do
-    {:noreply, push_patch(socket, to: ~p"/app/commands")}
+  def handle_event("open_settings", _, socket) do
+    send(self(), {:open_settings})
+    {:noreply, socket}
   end
 end
