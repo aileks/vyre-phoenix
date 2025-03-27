@@ -3,34 +3,63 @@ defmodule VyreWeb.UserLoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">
-        Log in to account
-        <:subtitle>
-          Don't have an account?
-          <.link navigate={~p"/users/register"} class="font-semibold hover:underline">
-            Sign up
-          </.link>
-          for an account now.
-        </:subtitle>
-      </.header>
+    <div class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+      <div class="bg-midnight-700 shadow-midnight-900/50 w-full max-w-md rounded-xs border border-gray-700 p-5 shadow-lg sm:p-7">
+        <div class="text-verdant-400 mb-4 text-2xl font-bold tracking-wide sm:text-4xl">
+          Log In
+        </div>
 
-      <.simple_form for={@form} id="login_form" action={~p"/users/login"} phx-update="ignore">
-        <.input field={@form[:email]} type="email" label="Email" required />
-        <.input field={@form[:password]} type="password" label="Password" required />
+        <.simple_form for={@form} id="login_form" action={~p"/users/login"} phx-update="ignore">
+          <.input
+            field={@form[:email]}
+            type="email"
+            label="Email"
+            placeholder="user@domain.com"
+            required
+          />
 
-        <:actions>
-          <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
-          <.link href={~p"/users/reset"} class="text-sm font-semibold">
-            Forgot your password?
+          <.input
+            field={@form[:password]}
+            type="password"
+            label="Password"
+            placeholder="••••••••"
+            required
+          />
+
+          <:actions>
+            <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
+
+            <.link
+              href={~p"/users/reset"}
+              class="text-sm hover:text-electric-500 duration-200 transition-colors text-electric-600 font-semibold"
+            >
+              Forgot your password?
+            </.link>
+          </:actions>
+
+          <:actions>
+            <.button
+              phx-disable-with="Logging in..."
+              class="border-verdant-400 bg-verdant-600 hover:bg-verdant-500 focus:ring-verdant-500/50 w-full rounded-xs border transition-colors duration-200 cursor-pointer focus:ring-2 focus:outline-none disabled:opacity-70 sm:py-2.5"
+            >
+              Log In <span aria-hidden="true">→</span>
+            </.button>
+          </:actions>
+        </.simple_form>
+
+        <div class="mt-6 border-t border-gray-700 pt-4 text-center sm:mt-8 sm:pt-6">
+          <span class="text-cybertext-600 text-sm sm:text-base">
+            Need an account?
+          </span>
+          {~c" "}
+          <.link
+            navigate={~p"/users/register"}
+            class="text-sm text-pink-400 transition-colors duration-200 hover:text-pink-300 sm:text-base"
+          >
+            Register here
           </.link>
-        </:actions>
-        <:actions>
-          <.button phx-disable-with="Logging in..." class="w-full">
-            Log in <span aria-hidden="true">→</span>
-          </.button>
-        </:actions>
-      </.simple_form>
+        </div>
+      </div>
     </div>
     """
   end
