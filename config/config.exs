@@ -43,7 +43,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.0.0",
+  version: "4.0.17",
   vyre: [
     args: ~w(
       --input=css/app.css
