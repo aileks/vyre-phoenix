@@ -6,38 +6,77 @@ defmodule VyreWeb.UserRegistrationLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">
-        Register for an account
-        <:subtitle>
-          Already registered?
-          <.link navigate={~p"/users/login"} class="font-semibold text-brand hover:underline">
-            Log in
+    <div class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+      <div class="bg-midnight-700 shadow-midnight-900/50 w-full max-w-md rounded-xs border border-gray-700 p-5 shadow-lg sm:p-7">
+        <.header class="mb-4 text-pink-500">
+          Register
+        </.header>
+
+        <.simple_form
+          for={@form}
+          id="registration_form"
+          phx-submit="save"
+          phx-change="validate"
+          phx-trigger-action={@trigger_submit}
+          action={~p"/users/login?_action=registered"}
+          method="post"
+        >
+          <.error :if={@check_errors}>
+            Oops, something went wrong! Please check the errors below.
+          </.error>
+
+          <.input
+            field={@form[:email]}
+            type="email"
+            label="Email"
+            placeholder="user@domain.com"
+            required
+          />
+          <.input
+            field={@form[:username]}
+            type="text"
+            placeholder="user123"
+            label="Username"
+            required
+          />
+          <.input
+            field={@form[:password]}
+            type="password"
+            label="Password"
+            required
+            placeholder="••••••••"
+          />
+          <.input
+            field={@form[:confirm_password]}
+            type="password"
+            label="Confirm Password"
+            placeholder="••••••••"
+            required
+          />
+
+          <:actions>
+            <.button
+              phx-disable-with="Creating account..."
+              class="text-cybertext-100 mt-4 w-full rounded-xs border border-pink-400 bg-pink-600 px-4 py-2 transition-all duration-200 hover:cursor-pointer hover:bg-pink-500 focus:ring-2 focus:ring-pink-500/50 focus:outline-none disabled:opacity-70 sm:mt-6 sm:py-2.5"
+            >
+              Create Account
+            </.button>
+          </:actions>
+        </.simple_form>
+
+        <div class="mt-6 border-t border-gray-700 pt-4 text-center sm:mt-8 sm:pt-6">
+          <span class="text-cybertext-500 text-sm sm:text-base">
+            Already have an account?
+          </span>
+
+          <.link
+            navigate={~p"/users/login"}
+            class="text-verdant-400 hover:text-verdant-300 text-sm transition-colors duration-200 sm:text-base"
+          >
+            Log in here
           </.link>
-          to your account now.
-        </:subtitle>
-      </.header>
-
-      <.simple_form
-        for={@form}
-        id="registration_form"
-        phx-submit="save"
-        phx-change="validate"
-        phx-trigger-action={@trigger_submit}
-        action={~p"/users/login?_action=registered"}
-        method="post"
-      >
-        <.error :if={@check_errors}>
-          Oops, something went wrong! Please check the errors below.
-        </.error>
-
-        <.input field={@form[:email]} type="email" label="Email" required />
-        <.input field={@form[:password]} type="password" label="Password" required />
-
-        <:actions>
-          <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
-        </:actions>
-      </.simple_form>
+        </div>
+      </div>
     </div>
     """
   end

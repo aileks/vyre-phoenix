@@ -5,9 +5,9 @@ defmodule VyreWeb.UserLoginLive do
     ~H"""
     <div class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
       <div class="bg-midnight-700 shadow-midnight-900/50 w-full max-w-md rounded-xs border border-gray-700 p-5 shadow-lg sm:p-7">
-        <div class="text-verdant-400 mb-4 text-2xl font-bold tracking-wide sm:text-4xl">
+        <.header class="text-verdant-400 mb-4">
           Log In
-        </div>
+        </.header>
 
         <.simple_form for={@form} id="login_form" action={~p"/users/login"} phx-update="ignore">
           <.input
@@ -51,10 +51,9 @@ defmodule VyreWeb.UserLoginLive do
           <span class="text-cybertext-600 text-sm sm:text-base">
             Need an account?
           </span>
-          {~c" "}
           <.link
             navigate={~p"/users/register"}
-            class="text-sm text-pink-400 transition-colors duration-200 hover:text-pink-300 sm:text-base"
+            class="text-sm text-pink-500 transition-colors duration-200 hover:text-pink-400 sm:text-base"
           >
             Register here
           </.link>
