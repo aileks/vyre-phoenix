@@ -37,7 +37,7 @@ defmodule VyreWeb.UserSettingsLive do
         <.simple_form
           for={@password_form}
           id="password_form"
-          action={~p"/users/log_in?_action=password_updated"}
+          action={~p"/users/login?_action=password_updated"}
           method="post"
           phx-change="validate_password"
           phx-submit="update_password"
@@ -124,7 +124,7 @@ defmodule VyreWeb.UserSettingsLive do
         Accounts.deliver_user_update_email_instructions(
           applied_user,
           user.email,
-          &url(~p"/users/settings/confirm_email/#{&1}")
+          &url(~p"/users/settings/confirm/#{&1}")
         )
 
         info = "A link to confirm your email change has been sent to the new address."

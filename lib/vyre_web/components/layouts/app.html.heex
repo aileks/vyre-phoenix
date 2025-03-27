@@ -1,11 +1,12 @@
 <div class="flex h-screen">
-  <!-- We'll add the sidebar component later -->
-  <div
-    id="sidebar-placeholder"
-    class="bg-midnight-900 flex h-full w-64 flex-col border-r border-gray-700"
-  >
-    <!-- Sidebar content will go here -->
-  </div>
+  <%= if assigns[:current_user] && String.starts_with?(assigns[:current_uri], "/app") do %>
+    <.live_component
+      module={VyreWeb.Components.Sidebar}
+      id="sidebar"
+      current_user={assigns[:current_user]}
+      current_path={assigns[:current_uri]}
+    />
+  <% end %>
 
   <div class="flex h-full flex-1 flex-col overflow-hidden">
     <main class="flex-1 overflow-hidden">
