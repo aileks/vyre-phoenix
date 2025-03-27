@@ -124,78 +124,74 @@ defmodule VyreWeb.Components.CommandsModal do
         show={@is_open}
         on_cancel={JS.patch(@return_to)}
       >
-        <div class="relative">
-          <div class="border-b border-gray-700 p-4">
-            <input
-              type="text"
-              placeholder="Search commands..."
-              value={@search_text}
-              phx-keyup="search"
+        <div class="border-b border-gray-700 p-4">
+          <input
+            type="text"
+            placeholder="Search commands..."
+            value={@search_text}
+            phx-keyup="search"
+            phx-target={@myself}
+            class="search-input"
+          />
+        </div>
+
+        <div class="flex flex-wrap gap-2 border-b border-gray-700 p-4">
+          <%= for category <- @categories do %>
+            <button
+              phx-click="select_category"
+              phx-value-category={category}
               phx-target={@myself}
-              class="bg-midnight-900 w-full rounded-xs border border-gray-700 px-3 py-2"
-            />
-          </div>
+              class={[
+                "rounded-xs px-4 py-2",
+                @selected_category == category && "bg-primary-700 text-cybertext-200",
+                @selected_category != category &&
+                  "bg-midnight-600 text-cybertext-400 duration-200 transition-colors cursor-pointer hover:bg-midnight-500"
+              ]}
+            >
+              {String.capitalize(category)}
+            </button>
+          <% end %>
+        </div>
 
-          <div class="flex flex-wrap gap-2 border-b border-gray-700 p-4">
-            <%= for category <- @categories do %>
-              <button
-                phx-click="select_category"
-                phx-value-category={category}
-                phx-target={@myself}
-                class={[
-                  "rounded-xs px-4 py-2",
-                  @selected_category == category && "bg-primary-700 text-cybertext-200",
-                  @selected_category != category &&
-                    "bg-midnight-500 text-cybertext-400 hover:bg-midnight-600"
-                ]}
-              >
-                {String.capitalize(category)}
-              </button>
-            <% end %>
-          </div>
+        <div class="h-[50vh] overflow-y-auto p-4">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <%= for command <- @filtered_commands do %>
+              <div class="bg-midnight-700 overflow-hidden rounded-xs border border-gray-700">
+                <div class="bg-midnight-900 flex items-center justify-between border-b border-gray-700 px-3 py-2">
+                  <div class="text-primary-400 font-mono">/{command.name}</div>
 
-          <div class="max-h-96 overflow-y-auto p-4">
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <%= for command <- @filtered_commands do %>
-                <div class="bg-midnight-600 overflow-hidden rounded-xs border border-gray-700">
-                  <div class="bg-midnight-900 flex items-center justify-between border-b border-gray-700 px-3 py-2">
-                    <div class="text-primary-400 font-mono">/{command.name}</div>
-
-                    <div class="bg-midnight-900 text-cybertext-500 rounded-xs px-2 py-0.5 text-xs capitalize">
-                      {command.category}
-                    </div>
-                  </div>
-
-                  <div class="p-3">
-                    <div class="mb-2">{command.description}</div>
-
-                    <div class="text-cybertext-500 mb-1.5 text-xs">
-                      <span class="text-cybertext-400">Usage:</span> {command.usage}
-                    </div>
-
-                    <div class="text-cybertext-500 bg-midnight-500 rounded-xs p-2 font-mono text-xs">
-                      {command.example}
-                    </div>
+                  <div class="bg-midnight-900 text-cybertext-500 rounded-xs px-2 py-0.5 text-xs capitalize">
+                    {command.category}
                   </div>
                 </div>
-              <% end %>
-            </div>
 
-            <%= if Enum.empty?(@filtered_commands) do %>
-              <div class="bg-midnight-500 rounded-xs border border-gray-700 p-6 text-center">
-                <div class="mb-2">No commands found</div>
+                <div class="p-3">
+                  <div class="mb-2">{command.description}</div>
 
-                <div class="text-cybertext-500 text-sm">
-                  Try a different search term or category
+                  <span class="text-cybertext-400 text-sm">Usage:</span>
+
+                  <div class="border-l border-verdant-700 text-cybertext-500 bg-midnight-600 rounded-xs p-2 font-mono text-xs">
+                    {command.example}
+                  </div>
                 </div>
               </div>
             <% end %>
           </div>
 
-          <div class="text-cybertext-500 border-t border-gray-700 p-3 text-sm">
-            Tip: You can use <span class="text-primary-400 font-mono">/help [command]</span>
-            in chat to quickly see usage information
-          </div>
+          <%= if Enum.empty?(@filtered_commands) do %>
+            <div class="bg-midnight-700 rounded-xs border border-gray-700 p-6 text-center">
+              <div class="mb-2">No commands found</div>
+
+              <div class="text-cybertext-500 text-sm">
+                Try a different search term or category
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="text-cybertext-500 border-t border-gray-700 p-3 text-sm">
+          Tip: You can use <span class="text-primary-400 font-mono">/help [command]</span>
+          in chat to quickly see usage information
         </div>
       </.modal>
     </div>

@@ -54,7 +54,7 @@ defmodule VyreWeb.Components.SettingsModal do
     ~H"""
     <div>
       <.modal id="settings-modal" title="Settings" show={@is_open} on_cancel={JS.patch(@return_to)}>
-        <div class="flex flex-1 h-[60vh]">
+        <div class="flex flex-1 h-[70vh]">
           <!-- Settings Sidebar -->
           <div class="bg-midnight-900 w-48 border-r border-gray-700 h-full flex flex-col">
             <div class="flex flex-col h-full">
