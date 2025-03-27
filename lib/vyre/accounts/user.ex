@@ -35,7 +35,7 @@ defmodule Vyre.Accounts.User do
       references: :id,
       on_delete: :delete_all
 
-    has_many :recieved_messages, Vyre.Messages.PrivateMessage,
+    has_many :received_messages, Vyre.Messages.PrivateMessage,
       foreign_key: :receiver_id,
       references: :id,
       on_delete: :delete_all

@@ -2,10 +2,12 @@ defmodule VyreWeb.AppLive do
   use VyreWeb, :live_view
 
   def mount(_params, _session, socket) do
+    IO.inspect(socket, label: "\n\nMounting AppLive")
+
     socket =
       assign(socket,
         page_title: "Vyre Chat",
-        current_uri: socket.assigns[:uri] || "/"
+        current_uri: "/app"
       )
 
     {:ok, socket}

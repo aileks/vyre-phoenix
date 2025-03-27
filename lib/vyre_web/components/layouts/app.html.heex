@@ -1,5 +1,5 @@
 <div class="flex h-screen">
-  <%= if @current_user && String.starts_with?(@current_uri, "/app") do %>
+  <%= if assigns[:current_user] do %>
     <.live_component
       module={VyreWeb.Components.Sidebar}
       id="sidebar"

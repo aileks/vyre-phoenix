@@ -9,16 +9,19 @@ defmodule VyreWeb.Components.Sidebar do
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <div class="relative mr-3">
-              <div class="bg-primary-600 flex h-10 w-10 items-center justify-center rounded-xs text-sm">
-                {String.first(@current_user[:email] || @current_user["email"] || "Y")}
+              <div class="bg-primary-600 flex h-10 w-10 items-center justify-center rounded-full text-sm">
+                {@current_user.avatar_url}
               </div>
+
               <div class="border-midnight-900 status-indicator-away absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2">
               </div>
             </div>
+
             <div>
               <div class="text-cybertext-200 font-mono">
-                {@current_user[:username] || @current_user["username"] || "you"}
+                {@current_user.display_name}
               </div>
+
               <div class="text-cybertext-500 text-xs">Connected</div>
             </div>
           </div>
@@ -66,7 +69,7 @@ defmodule VyreWeb.Components.Sidebar do
 
           <%= if @pm_expanded do %>
             <div class="mt-1 space-y-1">
-              <%= for pm <- @direct_messages do %>
+              <%= for pm <- @private_messages do %>
                 <.link
                   href="#"
                   class={[
@@ -171,56 +174,68 @@ defmodule VyreWeb.Components.Sidebar do
   end
 
   def mount(socket) do
-    # Sample direct messages data
-    direct_messages = [
-      %{id: 2, username: "neo_coder", status: "online", unread: true},
-      %{id: 3, username: "cyber_ghost", status: "away", unread: false},
-      %{id: 4, username: "pixeldreamer", status: "offline", unread: false}
-    ]
-
-    # Sample servers data
-    servers = [
-      %{
-        id: 1,
-        name: "Uni Group",
-        channels: [
-          %{id: 101, name: "general", unread: true, mentions: 0},
-          %{id: 102, name: "help", unread: false, mentions: 0},
-          %{id: 103, name: "projects", unread: false, mentions: 2}
-        ]
-      },
-      %{
-        id: 2,
-        name: "Dev Chat",
-        channels: [
-          %{id: 201, name: "chat", unread: false, mentions: 0},
-          %{id: 202, name: "typescript", unread: true, mentions: 0},
-          %{id: 203, name: "beginners", unread: false, mentions: 0}
-        ]
-      }
-    ]
-
-    socket =
-      assign(socket,
-        pm_expanded: true,
-        servers_expanded: true,
-        direct_messages: direct_messages,
-        servers: servers
-      )
-
     {:ok, socket}
   end
 
   def update(assigns, socket) do
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign_new(:pm_expanded, fn -> true end)
-      |> assign_new(:servers_expanded, fn -> true end)
-      |> assign_new(:direct_messages, fn -> [] end)
-      |> assign_new(:servers, fn -> [] end)
+    socket = assign(socket, assigns)
 
-    {:ok, socket}
+    if assigns[:current_user] do
+      current_user = assigns.current_user
+
+      user_with_data =
+        Vyre.Repo.preload(current_user, [
+          :sent_messages,
+          :received_messages,
+          :joined_servers,
+          :owned_servers
+        ])
+
+      private_messages = get_user_private_messages(user_with_data)
+      servers = get_user_servers(user_with_data)
+
+      socket =
+        assign(socket,
+          pm_expanded: true,
+          servers_expanded: true,
+          private_messages: private_messages,
+          servers: servers
+        )
+
+      {:ok, socket}
+    else
+      # Handle case when no current_user is provided
+      # This shouldn't happen
+      {:ok,
+       assign(socket,
+         pm_expanded: true,
+         servers_expanded: true,
+         private_messages: [],
+         joined_servers: [],
+         owned_servers: []
+       )}
+    end
+  end
+
+  defp get_user_private_messages(user) do
+    sent = user.sent_messages || []
+    received = user.received_messages || []
+
+    (sent ++ received)
+    |> Enum.sort_by(fn msg -> msg.inserted_at end, {:desc, DateTime})
+    |> Enum.uniq_by(fn msg ->
+      users = [msg.sender_id, msg.receiver_id] |> Enum.sort()
+      "#{users}"
+    end)
+  end
+
+  defp get_user_servers(user) do
+    owned = user.owned_servers || []
+    joined = user.joined_servers || []
+
+    (owned ++ joined)
+    |> Enum.uniq_by(fn server -> server.id end)
+    |> Enum.sort_by(fn server -> server.name end)
   end
 
   # Event handlers
