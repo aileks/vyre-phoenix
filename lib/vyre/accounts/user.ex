@@ -2,6 +2,8 @@ defmodule Vyre.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
   schema "users" do
     field :email, :string
     field :username, :string
@@ -13,6 +15,38 @@ defmodule Vyre.Accounts.User do
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
+
+    has_many :channel_messages, Vyre.Messages.Message, on_delete: :delete_all
+
+    has_many :owned_servers, Vyre.Servers.Server,
+      foreign_key: :owner_id,
+      on_delete: :delete_all
+
+    has_many :friendships, Vyre.Friends.Friend,
+      foreign_key: :user_id,
+      on_delete: :delete_all
+
+    has_many :friend_requests, Vyre.Friends.Friend,
+      foreign_key: :friend_id,
+      on_delete: :delete_all
+
+    has_many :sent_messages, Vyre.Messages.PrivateMessage,
+      foreign_key: :sender_id,
+      references: :id,
+      on_delete: :delete_all
+
+    has_many :recieved_messages, Vyre.Messages.PrivateMessage,
+      foreign_key: :receiver_id,
+      references: :id,
+      on_delete: :delete_all
+
+    many_to_many :roles, Vyre.Roles.Role,
+      join_through: Vyre.Roles.UserRole,
+      on_delete: :delete_all
+
+    many_to_many :joined_servers, Vyre.Servers.Server,
+      join_through: Vyre.Servers.ServerMember,
+      on_delete: :delete_all
 
     timestamps(type: :utc_datetime)
   end

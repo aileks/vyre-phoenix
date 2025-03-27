@@ -1,10 +1,10 @@
 <div class="flex h-screen">
-  <%= if assigns[:current_user] && String.starts_with?(assigns[:current_uri], "/app") do %>
+  <%= if @current_user && String.starts_with?(@current_uri, "/app") do %>
     <.live_component
       module={VyreWeb.Components.Sidebar}
       id="sidebar"
-      current_user={assigns[:current_user]}
-      current_path={assigns[:current_uri]}
+      current_user={@current_user}
+      current_path={@current_uri}
     />
   <% end %>
 

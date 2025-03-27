@@ -1,0 +1,46 @@
+<.header>
+  Listing Roles
+  <:actions>
+    <.link patch={~p"/roles/new"}>
+      <.button>New Role</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="roles"
+  rows={@streams.roles}
+  row_click={fn {_id, role} -> JS.navigate(~p"/roles/#{role}") end}
+>
+  <:col :let={{_id, role}} label="Name">{role.name}</:col>
+  <:col :let={{_id, role}} label="Color">{role.color}</:col>
+  <:col :let={{_id, role}} label="Permissions">{role.permissions}</:col>
+  <:col :let={{_id, role}} label="Position">{role.position}</:col>
+  <:col :let={{_id, role}} label="Hoist">{role.hoist}</:col>
+  <:col :let={{_id, role}} label="Mentionable">{role.mentionable}</:col>
+  <:action :let={{_id, role}}>
+    <div class="sr-only">
+      <.link navigate={~p"/roles/#{role}"}>Show</.link>
+    </div>
+    <.link patch={~p"/roles/#{role}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, role}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: role.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="role-modal" show on_cancel={JS.patch(~p"/roles")}>
+  <.live_component
+    module={VyreWeb.RoleLive.FormComponent}
+    id={@role.id || :new}
+    title={@page_title}
+    action={@live_action}
+    role={@role}
+    patch={~p"/roles"}
+  />
+</.modal>

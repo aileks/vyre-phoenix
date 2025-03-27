@@ -1,0 +1,31 @@
+<.header>
+  Role {@role.id}
+  <:subtitle>This is a role record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/roles/#{@role}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit role</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name">{@role.name}</:item>
+  <:item title="Color">{@role.color}</:item>
+  <:item title="Permissions">{@role.permissions}</:item>
+  <:item title="Position">{@role.position}</:item>
+  <:item title="Hoist">{@role.hoist}</:item>
+  <:item title="Mentionable">{@role.mentionable}</:item>
+</.list>
+
+<.back navigate={~p"/roles"}>Back to roles</.back>
+
+<.modal :if={@live_action == :edit} id="role-modal" show on_cancel={JS.patch(~p"/roles/#{@role}")}>
+  <.live_component
+    module={VyreWeb.RoleLive.FormComponent}
+    id={@role.id}
+    title={@page_title}
+    action={@live_action}
+    role={@role}
+    patch={~p"/roles/#{@role}"}
+  />
+</.modal>

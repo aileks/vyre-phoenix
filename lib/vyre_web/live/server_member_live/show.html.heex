@@ -1,0 +1,26 @@
+<.header>
+  Server member {@server_member.id}
+  <:subtitle>This is a server_member record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/server_members/#{@server_member}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit server_member</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Nickname">{@server_member.nickname}</:item>
+</.list>
+
+<.back navigate={~p"/server_members"}>Back to server_members</.back>
+
+<.modal :if={@live_action == :edit} id="server_member-modal" show on_cancel={JS.patch(~p"/server_members/#{@server_member}")}>
+  <.live_component
+    module={VyreWeb.ServerMemberLive.FormComponent}
+    id={@server_member.id}
+    title={@page_title}
+    action={@live_action}
+    server_member={@server_member}
+    patch={~p"/server_members/#{@server_member}"}
+  />
+</.modal>

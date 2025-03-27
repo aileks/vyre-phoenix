@@ -1,0 +1,41 @@
+<.header>
+  Listing Server members
+  <:actions>
+    <.link patch={~p"/server_members/new"}>
+      <.button>New Server member</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="server_members"
+  rows={@streams.server_members}
+  row_click={fn {_id, server_member} -> JS.navigate(~p"/server_members/#{server_member}") end}
+>
+  <:col :let={{_id, server_member}} label="Nickname">{server_member.nickname}</:col>
+  <:action :let={{_id, server_member}}>
+    <div class="sr-only">
+      <.link navigate={~p"/server_members/#{server_member}"}>Show</.link>
+    </div>
+    <.link patch={~p"/server_members/#{server_member}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, server_member}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: server_member.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="server_member-modal" show on_cancel={JS.patch(~p"/server_members")}>
+  <.live_component
+    module={VyreWeb.ServerMemberLive.FormComponent}
+    id={@server_member.id || :new}
+    title={@page_title}
+    action={@live_action}
+    server_member={@server_member}
+    patch={~p"/server_members"}
+  />
+</.modal>

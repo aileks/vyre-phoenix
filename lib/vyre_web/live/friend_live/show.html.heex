@@ -1,0 +1,25 @@
+<.header>
+  Friend {@friend.id}
+  <:subtitle>This is a friend record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/friends/#{@friend}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit friend</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+</.list>
+
+<.back navigate={~p"/friends"}>Back to friends</.back>
+
+<.modal :if={@live_action == :edit} id="friend-modal" show on_cancel={JS.patch(~p"/friends/#{@friend}")}>
+  <.live_component
+    module={VyreWeb.FriendLive.FormComponent}
+    id={@friend.id}
+    title={@page_title}
+    action={@live_action}
+    friend={@friend}
+    patch={~p"/friends/#{@friend}"}
+  />
+</.modal>

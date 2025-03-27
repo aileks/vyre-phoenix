@@ -1,0 +1,42 @@
+<.header>
+  Listing Private messages
+  <:actions>
+    <.link patch={~p"/private_messages/new"}>
+      <.button>New Private message</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="private_messages"
+  rows={@streams.private_messages}
+  row_click={fn {_id, private_message} -> JS.navigate(~p"/private_messages/#{private_message}") end}
+>
+  <:col :let={{_id, private_message}} label="Content">{private_message.content}</:col>
+  <:col :let={{_id, private_message}} label="Read">{private_message.read}</:col>
+  <:action :let={{_id, private_message}}>
+    <div class="sr-only">
+      <.link navigate={~p"/private_messages/#{private_message}"}>Show</.link>
+    </div>
+    <.link patch={~p"/private_messages/#{private_message}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, private_message}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: private_message.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="private_message-modal" show on_cancel={JS.patch(~p"/private_messages")}>
+  <.live_component
+    module={VyreWeb.PrivateMessageLive.FormComponent}
+    id={@private_message.id || :new}
+    title={@page_title}
+    action={@live_action}
+    private_message={@private_message}
+    patch={~p"/private_messages"}
+  />
+</.modal>

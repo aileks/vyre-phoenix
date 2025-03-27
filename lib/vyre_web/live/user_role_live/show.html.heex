@@ -1,0 +1,25 @@
+<.header>
+  User role {@user_role.id}
+  <:subtitle>This is a user_role record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/user_roles/#{@user_role}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit user_role</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+</.list>
+
+<.back navigate={~p"/user_roles"}>Back to user_roles</.back>
+
+<.modal :if={@live_action == :edit} id="user_role-modal" show on_cancel={JS.patch(~p"/user_roles/#{@user_role}")}>
+  <.live_component
+    module={VyreWeb.UserRoleLive.FormComponent}
+    id={@user_role.id}
+    title={@page_title}
+    action={@live_action}
+    user_role={@user_role}
+    patch={~p"/user_roles/#{@user_role}"}
+  />
+</.modal>

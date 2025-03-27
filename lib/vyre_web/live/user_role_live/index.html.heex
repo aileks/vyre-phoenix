@@ -1,0 +1,40 @@
+<.header>
+  Listing User roles
+  <:actions>
+    <.link patch={~p"/user_roles/new"}>
+      <.button>New User role</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="user_roles"
+  rows={@streams.user_roles}
+  row_click={fn {_id, user_role} -> JS.navigate(~p"/user_roles/#{user_role}") end}
+>
+  <:action :let={{_id, user_role}}>
+    <div class="sr-only">
+      <.link navigate={~p"/user_roles/#{user_role}"}>Show</.link>
+    </div>
+    <.link patch={~p"/user_roles/#{user_role}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, user_role}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: user_role.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="user_role-modal" show on_cancel={JS.patch(~p"/user_roles")}>
+  <.live_component
+    module={VyreWeb.UserRoleLive.FormComponent}
+    id={@user_role.id || :new}
+    title={@page_title}
+    action={@live_action}
+    user_role={@user_role}
+    patch={~p"/user_roles"}
+  />
+</.modal>

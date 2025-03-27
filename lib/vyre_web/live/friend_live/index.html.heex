@@ -1,0 +1,40 @@
+<.header>
+  Listing Friends
+  <:actions>
+    <.link patch={~p"/friends/new"}>
+      <.button>New Friend</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="friends"
+  rows={@streams.friends}
+  row_click={fn {_id, friend} -> JS.navigate(~p"/friends/#{friend}") end}
+>
+  <:action :let={{_id, friend}}>
+    <div class="sr-only">
+      <.link navigate={~p"/friends/#{friend}"}>Show</.link>
+    </div>
+    <.link patch={~p"/friends/#{friend}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, friend}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: friend.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="friend-modal" show on_cancel={JS.patch(~p"/friends")}>
+  <.live_component
+    module={VyreWeb.FriendLive.FormComponent}
+    id={@friend.id || :new}
+    title={@page_title}
+    action={@live_action}
+    friend={@friend}
+    patch={~p"/friends"}
+  />
+</.modal>
