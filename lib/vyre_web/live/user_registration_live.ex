@@ -47,7 +47,7 @@ defmodule VyreWeb.UserRegistrationLive do
             placeholder="••••••••"
           />
           <.input
-            field={@form[:confirm_password]}
+            field={@form[:password_confirmation]}
             type="password"
             label="Confirm Password"
             placeholder="••••••••"

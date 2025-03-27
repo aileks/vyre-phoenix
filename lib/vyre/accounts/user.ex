@@ -6,9 +6,10 @@ defmodule Vyre.Accounts.User do
     field :email, :string
     field :username, :string
     field :display_name, :string
-    field :avatar_url, :string
+    field :avatar_url, :string, default: ""
     field :status, :string, default: "offline"
     field :password, :string, virtual: true, redact: true
+    field :password_confirmation, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
@@ -41,27 +42,55 @@ defmodule Vyre.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :password])
+    |> cast(attrs, [:email, :username, :display_name, :status, :password, :password_confirmation])
+    |> set_default_display_name()
     |> validate_email(opts)
+    |> validate_username(opts)
     |> validate_password(opts)
+  end
+
+  defp set_default_display_name(changeset) do
+    username = get_change(changeset, :username)
+    display_name = get_change(changeset, :display_name)
+
+    if is_nil(display_name) && username do
+      put_change(changeset, :display_name, username)
+    else
+      changeset
+    end
   end
 
   defp validate_email(changeset, opts) do
     changeset
     |> validate_required([:email])
-    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
-    |> validate_length(:email, max: 160)
+    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "Must have the @ sign and no spaces")
+    |> validate_length(:email, max: 160, message: "Email is too long")
     |> maybe_validate_unique_email(opts)
+  end
+
+  defp validate_username(changeset, opts) do
+    changeset
+    |> validate_format(:username, ~r/^[a-z0-9_-]+$/i,
+      message: "Only letters, numbers, underscores and dashes"
+    )
+    |> validate_length(:username, min: 3, max: 30, message: "Must be between 3 and 30 characters")
+    |> maybe_validate_unique_username(opts)
   end
 
   defp validate_password(changeset, opts) do
     changeset
     |> validate_required([:password])
     |> validate_length(:password, min: 12, max: 72)
-    # Examples of additional password validation:
-    # |> validate_format(:password, ~r/[a-z]/, message: "at least one lower case character")
-    # |> validate_format(:password, ~r/[A-Z]/, message: "at least one upper case character")
-    # |> validate_format(:password, ~r/[!?@#$%^&*_0-9]/, message: "at least one digit or punctuation character")
+    |> validate_format(:password, ~r/[a-z]/,
+      message: "Must have at least one lower case character"
+    )
+    |> validate_format(:password, ~r/[A-Z]/,
+      message: "Must have at least one upper case character"
+    )
+    |> validate_format(:password, ~r/[0-9]/, message: "Must contain at least one number")
+    |> validate_format(:password, ~r/[!?@#$%^&*_]/,
+      message: "Must contain at least one special character"
+    )
     |> maybe_hash_password(opts)
   end
 
@@ -77,6 +106,7 @@ defmodule Vyre.Accounts.User do
       # would keep the database transaction open longer and hurt performance.
       |> put_change(:hashed_password, Bcrypt.hash_pwd_salt(password))
       |> delete_change(:password)
+      |> delete_change(:password_confirmation)
     else
       changeset
     end
@@ -87,6 +117,16 @@ defmodule Vyre.Accounts.User do
       changeset
       |> unsafe_validate_unique(:email, Vyre.Repo)
       |> unique_constraint(:email)
+    else
+      changeset
+    end
+  end
+
+  defp maybe_validate_unique_username(changeset, opts) do
+    if Keyword.get(opts, :validate_username, true) do
+      changeset
+      |> unsafe_validate_unique(:username, Vyre.Repo)
+      |> unique_constraint(:username)
     else
       changeset
     end
@@ -103,7 +143,7 @@ defmodule Vyre.Accounts.User do
     |> validate_email(opts)
     |> case do
       %{changes: %{email: _}} = changeset -> changeset
-      %{} = changeset -> add_error(changeset, :email, "did not change")
+      %{} = changeset -> add_error(changeset, :email, "Did not change")
     end
   end
 
@@ -122,7 +162,7 @@ defmodule Vyre.Accounts.User do
   def password_changeset(user, attrs, opts \\ []) do
     user
     |> cast(attrs, [:password])
-    |> validate_confirmation(:password, message: "does not match password")
+    |> validate_confirmation(:password, message: "Does not match password")
     |> validate_password(opts)
   end
 
