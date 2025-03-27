@@ -26,7 +26,9 @@ Check out the [Wiki](https://github.com/aileks/Vyre/wiki)!
 
 ### Project Stack
 
-- **Language**: [Elixir](https://elixir-lang.org) because functional.
-- **Framework**: [Phoenix](https://phoenixframework.org/) because scalable.
-- **Reactivity**: [LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html) because easy.
-- **ORM**: [Ecto](https://github.com/elixir-ecto/ecto) because powerful.
+- **Elixir**: functional, concurrent programming language built on the BEAM VM, chosen for scalability and fault tolerance.
+- **Phoenix Framework**: high-performance web framework for building real-time, maintainable applications.
+- **Phoenix LiveView**: library for building dynamic, server-rendered UIs with real-time updates without client-side JavaScript.
+- **Phoenix Channels**: realtime communication layer using WebSockets for bidirectional client-server interactions.
+- **Ecto**: database wrapper and query generator for Elixir, enabling type-safe and composable database interactions.
+- **HEEx Templates**: embedded HTML templating with Elixir integration for component-driven UI development.
