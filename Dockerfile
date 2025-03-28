@@ -7,6 +7,7 @@ ARG DATABASE_URL
 ARG DB_SCHEMA
 
 RUN mix local.hex --force && mix local.rebar --force
+RUN apk add --no-cache build-base git openssl ncurses-libs postgresql-dev postgresql-client libstdc++ ca-certificates curl
 
 WORKDIR /app
 
