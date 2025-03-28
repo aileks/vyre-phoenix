@@ -2,6 +2,7 @@ alias Vyre.Repo
 alias Vyre.Factory
 alias Vyre.Servers.Server
 alias Vyre.Servers.ServerMember
+alias Vyre.Channels.UserChannelStatus
 import Ecto.Query
 
 Application.ensure_all_started(:faker)
@@ -179,6 +180,113 @@ Enum.each(selected_pairs, fn {user1, user2} ->
   end)
 end)
 
+# Helper function to retrieve the latest message
+get_last_message = fn channel_id ->
+  Repo.one(
+    from m in Vyre.Messages.Message,
+      where: m.channel_id == ^channel_id,
+      order_by: [desc: m.inserted_at],
+      limit: 1
+  )
+end
+
+# Helper function to retrieve all messages for a channel
+get_channel_messages = fn channel_id ->
+  Repo.all(
+    from m in Vyre.Messages.Message,
+      where: m.channel_id == ^channel_id,
+      order_by: [asc: m.inserted_at]
+  )
+end
+
+# Get all users with server memberships
+server_members = Repo.all(ServerMember) |> Repo.preload(:user)
+
+Enum.each(channels, fn channel ->
+  # Get all members of the server this channel belongs to
+  channel_server_members =
+    Enum.filter(server_members, fn sm ->
+      sm.server_id == channel.server_id
+    end)
+
+  # Get all messages for this channel
+  messages = get_channel_messages.(channel.id)
+  last_message = List.last(messages)
+
+  Enum.each(channel_server_members, fn member ->
+    user_id = member.user_id
+
+    # Randomize read status
+    status_type = Enum.random([:read, :partially_read, :unread])
+
+    # Determine last read message, timestamp and mention count based on status
+    {last_read_at, last_read_message_id, mention_count} =
+      case status_type do
+        :read ->
+          if last_message do
+            {last_message.inserted_at, last_message.id, 0}
+          else
+            # Use current time if no messages
+            {DateTime.utc_now(), nil, 0}
+          end
+
+        :partially_read ->
+          if Enum.empty?(messages) do
+            # 1 day ago
+            {DateTime.add(DateTime.utc_now(), -86400), nil, Enum.random(0..3)}
+          else
+            idx = max(0, min(floor(length(messages) / 2) - 1, length(messages) - 1))
+            message = Enum.at(messages, idx)
+
+            # Count mentions in newer messages
+            newer_messages = Enum.drop(messages, idx + 1)
+
+            mention_count =
+              Enum.count(newer_messages, fn msg ->
+                msg.mentions_everyone && msg.user_id != user_id
+              end)
+
+            {message.inserted_at, message.id, mention_count}
+          end
+
+        :unread ->
+          # For unread, get mentions from all messages not by this user
+          mention_count =
+            Enum.count(messages, fn msg ->
+              msg.mentions_everyone && msg.user_id != user_id
+            end)
+
+          # Use a timestamp in the past but nil for last_read_message_id
+          # 1 week ago
+          {DateTime.add(DateTime.utc_now(), -604_800), nil, mention_count}
+      end
+
+    # Ensure all required fields are set
+    params = %{
+      user_id: user_id,
+      channel_id: channel.id,
+      last_read_at: last_read_at,
+      last_read_message_id: last_read_message_id,
+      mention_count: mention_count
+    }
+
+    # Double-check the required fields are set
+    IO.inspect(params, label: "Creating UserChannelStatus")
+
+    case Repo.get_by(UserChannelStatus, user_id: user_id, channel_id: channel.id) do
+      nil ->
+        %UserChannelStatus{}
+        |> UserChannelStatus.changeset(params)
+        |> Repo.insert()
+
+      existing ->
+        existing
+        |> UserChannelStatus.changeset(params)
+        |> Repo.update()
+    end
+  end)
+end)
+
 IO.puts("Database seeded successfully!")
 IO.puts("Created:")
 IO.puts("  - #{length(users)} users")
@@ -189,3 +297,4 @@ IO.puts("  - #{Repo.aggregate(Vyre.Messages.PrivateMessage, :count)} private mes
 IO.puts("  - #{Repo.aggregate(Vyre.Roles.Role, :count)} roles")
 IO.puts("  - #{Repo.aggregate(Vyre.Roles.UserRole, :count)} user roles")
 IO.puts("  - #{Repo.aggregate(Vyre.Friends.Friend, :count)} friend relationships")
+IO.puts("  - #{Repo.aggregate(UserChannelStatus, :count)} user channel status records")

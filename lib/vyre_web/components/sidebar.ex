@@ -135,13 +135,13 @@ defmodule VyreWeb.Components.Sidebar do
                         <span class="text-cybertext-500 mr-1">#</span>
                         <span>{channel.name}</span>
 
-                        <%= if channel.unread do %>
+                        <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
                           <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
                         <% end %>
 
-                        <%= if channel.mentions > 0 do %>
+                        <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
                           <div class="bg-error-600 text-error-200 ml-auto rounded-xs px-1.5 text-xs">
-                            {channel.mentions}
+                            {channel.computed.mention_count}
                           </div>
                         <% end %>
                       </.link>
@@ -187,8 +187,8 @@ defmodule VyreWeb.Components.Sidebar do
         Vyre.Repo.preload(current_user, [
           :sent_messages,
           :received_messages,
-          :joined_servers,
-          :owned_servers
+          joined_servers: [:channels],
+          owned_servers: [:channels]
         ])
 
       private_messages = get_user_private_messages(user_with_data)
@@ -205,7 +205,7 @@ defmodule VyreWeb.Components.Sidebar do
       {:ok, socket}
     else
       # Handle case when no current_user is provided
-      # This shouldn't happen
+      # This should NOT happen!
       {:ok,
        assign(socket,
          pm_expanded: true,
@@ -233,9 +233,27 @@ defmodule VyreWeb.Components.Sidebar do
     owned = user.owned_servers || []
     joined = user.joined_servers || []
 
-    (owned ++ joined)
-    |> Enum.uniq_by(fn server -> server.id end)
-    |> Enum.sort_by(fn server -> server.name end)
+    user_id = user.id
+
+    servers =
+      (owned ++ joined)
+      |> Enum.uniq_by(fn server -> server.id end)
+      |> Enum.sort_by(fn server -> server.name end)
+      |> Vyre.Repo.preload(:channels)
+
+    # Enhance channels with unread status and mention count
+    Enum.map(servers, fn server ->
+      channels =
+        Enum.map(server.channels, fn channel ->
+          # Add computed properties to each channel
+          Map.put(channel, :computed, %{
+            has_unread: Vyre.Channels.channel_has_unread?(user_id, channel.id),
+            mention_count: Vyre.Channels.get_channel_mention_count(user_id, channel.id)
+          })
+        end)
+
+      %{server | channels: channels}
+    end)
   end
 
   # Event handlers

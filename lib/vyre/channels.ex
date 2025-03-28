@@ -4,9 +4,11 @@ defmodule Vyre.Channels do
   """
 
   import Ecto.Query, warn: false
-  alias Vyre.Repo
 
+  alias Vyre.Repo
+  alias Vyre.Messages.Message
   alias Vyre.Channels.Channel
+  alias Vyre.Channels.UserChannelStatus
 
   @doc """
   Returns the list of channels.
@@ -100,5 +102,115 @@ defmodule Vyre.Channels do
   """
   def change_channel(%Channel{} = channel, attrs \\ %{}) do
     Channel.changeset(channel, attrs)
+  end
+
+  ## ----------------------------- ##
+  ## USER CHANNEL STATUS FUNCTIONS ##
+  ## ----------------------------- ##
+
+  def mark_channel_as_read(user_id, channel_id) do
+    latest_message =
+      Repo.one(
+        from m in Message,
+          where: m.channel_id == ^channel_id,
+          order_by: [desc: m.inserted_at],
+          limit: 1
+      )
+
+    # Prepare the params based on whether there's a latest message
+    params = %{
+      user_id: user_id,
+      channel_id: channel_id,
+      last_read_at: DateTime.utc_now(),
+      mention_count: 0
+    }
+
+    # Add the last_read_message_id only if we have a message
+    params =
+      if latest_message do
+        Map.put(params, :last_read_message_id, latest_message.id)
+      else
+        params
+      end
+
+    # Update or create the user's channel status
+    case get_user_channel_status(user_id, channel_id) do
+      nil ->
+        %UserChannelStatus{}
+        |> UserChannelStatus.changeset(params)
+        |> Repo.insert()
+
+      status ->
+        status
+        |> UserChannelStatus.changeset(params)
+        |> Repo.update()
+    end
+  end
+
+  def get_user_channel_status(user_id, channel_id) do
+    Repo.one(
+      from s in UserChannelStatus,
+        where: s.user_id == ^user_id and s.channel_id == ^channel_id
+    )
+  end
+
+  def channel_has_unread?(user_id, channel_id) do
+    status = get_user_channel_status(user_id, channel_id)
+
+    # If no status exists, channel has never been read
+    if is_nil(status) do
+      Repo.exists?(from m in Message, where: m.channel_id == ^channel_id)
+    else
+      # Check if there are messages newer than last read
+      # Only check based on last_read_at if it exists
+      case status.last_read_at do
+        nil ->
+          Repo.exists?(from m in Message, where: m.channel_id == ^channel_id)
+
+        timestamp ->
+          # Check for messages newer than the last read timestamp
+          query =
+            from m in Message,
+              where: m.channel_id == ^channel_id and m.inserted_at > ^timestamp,
+              limit: 1
+
+          Repo.exists?(query)
+      end
+    end
+  end
+
+  def get_channel_mention_count(user_id, channel_id) do
+    status = get_user_channel_status(user_id, channel_id)
+
+    # If no status exists or no last read, count all mentions
+    cond do
+      is_nil(status) ->
+        Repo.aggregate(
+          from(m in Message,
+            where: m.channel_id == ^channel_id and m.mentions_everyone == true
+          ),
+          :count
+        )
+
+      is_nil(status.last_read_at) ->
+        Repo.aggregate(
+          from(m in Message,
+            where: m.channel_id == ^channel_id and m.mentions_everyone == true
+          ),
+          :count
+        )
+
+      true ->
+        # Count mentions in messages newer than last read
+        Repo.aggregate(
+          from(m in Message,
+            where:
+              m.channel_id == ^channel_id and
+                m.inserted_at > ^status.last_read_at and
+                m.mentions_everyone == true
+          ),
+          :count
+        )
+    end
   end
 end

@@ -8,9 +8,6 @@ config :vyre, Vyre.Repo,
   database: "vyre_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  parameters: [search_path: "vyre"],
-  migration_default_prefix: "vyre",
-  migration_source: "vyre.schema_migrations",
   pool_size: 10
 
 # For development, we disable any cache and enable
