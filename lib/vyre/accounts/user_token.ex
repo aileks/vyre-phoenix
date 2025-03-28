@@ -13,6 +13,7 @@ defmodule Vyre.Accounts.UserToken do
   @change_email_validity_in_days 7
   @session_validity_in_days 60
 
+  @schema_prefix System.get_env("DB_SCHEMA")
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "users_tokens" do

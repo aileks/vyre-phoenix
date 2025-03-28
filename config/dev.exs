@@ -1,5 +1,8 @@
 import Config
 
+
+db_schema = System.get_env("DB_SCHEMA") || raise "environment variable DB_SCHEMA is missing"
+
 # Configure your database
 config :vyre, Vyre.Repo,
   username: "user",
@@ -8,6 +11,13 @@ config :vyre, Vyre.Repo,
   database: "vyre_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
+  parameters: [search_path: db_schema],
+  migration_default_prefix: db_schema,
+  ssl: [
+    verify: :verify_peer,
+    cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
+    server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
+  ],
   pool_size: 5
 
 # For development, we disable any cache and enable

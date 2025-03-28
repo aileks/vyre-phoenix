@@ -2,7 +2,7 @@ defmodule Vyre.Repo.Migrations.CreateRoles do
   use Ecto.Migration
 
   def change do
-    create table(:roles, primary_key: false) do
+    create table(:roles, primary_key: false, prefix: System.get_env("DB_SCHEMA")) do
       add :id, :binary_id, primary_key: true
       add :name, :string
       add :color, :string

@@ -2,7 +2,7 @@ defmodule Vyre.Repo.Migrations.CreatePrivateMessages do
   use Ecto.Migration
 
   def change do
-    create table(:private_messages, primary_key: false) do
+    create table(:private_messages, primary_key: false, prefix: System.get_env("DB_SCHEMA")) do
       add :id, :binary_id, primary_key: true
       add :content, :text
       add :read, :boolean, default: false, null: false

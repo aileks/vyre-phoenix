@@ -4,7 +4,7 @@ defmodule Vyre.Repo.Migrations.CreateUsersAuthTables do
   def change do
     execute "CREATE EXTENSION IF NOT EXISTS citext", ""
 
-    create table(:users, primary_key: false) do
+    create table(:users, primary_key: false, prefix: System.get_env("DB_SCHEMA")) do
       add :id, :binary_id, primary_key: true
       add :email, :citext, null: false
       add :username, :string, null: false

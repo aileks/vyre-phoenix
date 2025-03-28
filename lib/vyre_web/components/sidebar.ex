@@ -40,7 +40,7 @@ defmodule VyreWeb.Components.Sidebar do
       <div class="flex-1 overflow-y-auto p-2">
         <div class="mb-4 space-y-1">
           <.link
-            href="#"
+            navigate={~p"/app/friends"}
             class={[
               "flex items-center rounded-xs px-3 py-2",
               @current_path == "/app/friends" && "bg-primary-900 text-primary-300",

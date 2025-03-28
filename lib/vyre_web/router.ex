@@ -31,47 +31,47 @@ defmodule VyreWeb.Router do
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{VyreWeb.UserAuth, :redirect_if_user_is_authenticated}] do
       live "/users/register", UserRegistrationLive, :new
-      live "/users/login", UserLoginLive, :new
-      live "/users/reset", UserForgotPasswordLive, :new
-      live "/users/reset/:token", UserResetPasswordLive, :edit
+      # live "/users/login", UserLoginLive, :new
+      # live "/users/reset", UserForgotPasswordLive, :new
+      # live "/users/reset/:token", UserResetPasswordLive, :edit
     end
 
     post "/users/login", UserSessionController, :create
   end
 
-  scope "/", VyreWeb do
-    pipe_through [:browser, :require_authenticated_user]
+  # scope "/", VyreWeb do
+  #   pipe_through [:browser, :require_authenticated_user]
 
-    live_session :require_authenticated_user,
-      on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}] do
-      live "/users/settings", UserSettingsLive, :edit
-      live "/users/settings/confirm/:token", UserSettingsLive, :confirm_email
-    end
-  end
+  #   live_session :require_authenticated_user,
+  #     on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}] do
+  #     live "/users/settings", UserSettingsLive, :edit
+  #     live "/users/settings/confirm/:token", UserSettingsLive, :confirm_email
+  #   end
+  # end
 
-  scope "/", VyreWeb do
-    pipe_through [:browser]
+  # scope "/", VyreWeb do
+  #   pipe_through [:browser]
 
-    delete "/users/log_out", UserSessionController, :delete
+  #   delete "/users/log_out", UserSessionController, :delete
 
-    live_session :current_user,
-      on_mount: [{VyreWeb.UserAuth, :mount_current_user}] do
-      live "/users/confirm/:token", UserConfirmationLive, :edit
-      live "/users/confirm", UserConfirmationInstructionsLive, :new
-    end
-  end
+  #   live_session :current_user,
+  #     on_mount: [{VyreWeb.UserAuth, :mount_current_user}] do
+  #     live "/users/confirm/:token", UserConfirmationLive, :edit
+  #     live "/users/confirm", UserConfirmationInstructionsLive, :new
+  #   end
+  # end
 
-  scope "/app", VyreWeb do
-    pipe_through [:browser, :require_authenticated_user]
+  # scope "/app", VyreWeb do
+  #   pipe_through [:browser, :require_authenticated_user]
 
-    live_session :app,
-      on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}],
-      layout: {VyreWeb.Layouts, :app} do
-      live "/", AppLive, :index
-      live "/friends", AppLive, :friends
-      live "/channels/:channel_id", AppLive, :channels
-    end
-  end
+  #   live_session :app,
+  #     on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}],
+  #     layout: {VyreWeb.Layouts, :app} do
+  #     live "/", AppLive, :index
+  #     live "/friends", AppLive, :friends
+  #     live "/channels/:channel_id", AppLive, :channels
+  #   end
+  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:vyre, :dev_routes) do
