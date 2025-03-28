@@ -19,7 +19,7 @@ defmodule Vyre.Repo.Migrations.CreateUsersAuthTables do
 
     create unique_index(:users, [:email])
 
-    create table(:users_tokens, primary_key: false) do
+    create table(:users_tokens, primary_key: false, prefix: System.get_env("DB_SCHEMA")) do
       add :id, :binary_id, primary_key: true
       add :user_id, references(:users, on_delete: :delete_all, type: :binary_id), null: false
       add :token, :binary, null: false

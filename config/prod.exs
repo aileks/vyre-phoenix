@@ -17,7 +17,6 @@ database_url =
 config :vyre, VyreWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
 config :vyre, Vyre.Repo,
-  adapter: Ecto.Adapters.Postgres,
   parameters: [search_path: db_schema],
   migration_default_prefix: db_schema,
   url: database_url,
