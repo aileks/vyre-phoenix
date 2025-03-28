@@ -2,7 +2,7 @@
 FROM elixir:1.18-alpine AS builder
 
 ARG MIX_ENV
-ARG GUARDIAN_SECRET_KEY
+ARG SECRET_KEY_BASE
 ARG DATABASE_URL
 ARG DB_SCHEMA
 
@@ -16,13 +16,13 @@ WORKDIR /app
 COPY mix.exs mix.lock ./
 COPY config config
 
-RUN mix deps.get --only prod && mix deps.compile
+RUN mix deps.get --only prod
 
 COPY assets assets
 COPY lib lib
 COPY priv priv
 
-RUN mix compile
+RUN mix deps.compile
 RUN mix ecto.migrate
 RUN mix assets.deploy
 RUN mix release
@@ -31,7 +31,7 @@ RUN mix release
 FROM alpine:3.21 AS app
 
 ARG MIX_ENV
-ARG GUARDIAN_SECRET_KEY
+ARG SECRET_KEY_BASE
 ARG DATABASE_URL
 ARG DB_SCHEMA
 
