@@ -37,14 +37,12 @@ defmodule VyreWeb.HomeLive do
             </button>
           <% else %>
             <%= if !@is_authenticated do %>
-              <div class="flex gap-3">
-                <.link
-                  navigate={~p"/users/register"}
-                  class="rounded-xs border border-pink-400 bg-pink-600 px-4 py-2 font-mono duration-200 hover:bg-pink-500"
-                >
-                  Pre-Register
-                </.link>
-              </div>
+              <.link
+                navigate={~p"/users/login"}
+                class="hover:text-verdant-400 transition-colors duration-200 ease-in-out cursor-pointer text-verdant-500 text-xl relative inline-block after:absolute after:bottom-[-2px] after:left-0 after:h-0.5 after:w-0 after:bg-verdant-400 after:transition-all after:duration-300 hover:after:w-full"
+              >
+                Login
+              </.link>
             <% end %>
           <% end %>
         </div>
@@ -103,19 +101,19 @@ defmodule VyreWeb.HomeLive do
                 <%= if !@is_authenticated do %>
                   <.link
                     navigate={~p"/users/register"}
-                    class="bg-primary-600 hover:bg-primary-500 border-primary-400 rounded-xs border px-6 py-3 text-center font-mono duration-200"
+                    class="bg-primary-700 hover:bg-primary-600 border-primary-400 rounded-xs border px-3 py-2 text-center font-mono duration-200 ease-in-out transition-colors"
                   >
                     Get Started
                   </.link>
                 <% else %>
-                  <div class="border-electric-500 bg-electric-300/20 rounded-xs border px-6 py-3 text-center font-mono">
+                  <div class="border-electric-500 bg-electric-300/20 rounded-xs border px-3 py-2 text-center font-mono">
                     Thanks for pre-registering!
                   </div>
                 <% end %>
 
                 <.link
                   href="https://github.com/aileks/Vyre"
-                  class="bg-midnight-800 hover:bg-midnight-700 text-electric-400 hover:text-electric-300 rounded-xs border border-gray-700 px-6 py-3 text-center font-mono duration-200"
+                  class="bg-midnight-800 hover:bg-midnight-700 text-electric-400 hover:text-electric-300 rounded-xs border border-gray-700 px-3 py-2 text-center font-mono duration-200 ease-in-out"
                 >
                   Learn More
                 </.link>
@@ -155,8 +153,8 @@ defmodule VyreWeb.HomeLive do
           </div>
 
           <div class="bg-midnight-800 border-t border-gray-700 p-4">
-            <div class="text-cybertext-500 flex items-center font-mono text-xs">
-              <div class="text-lg font-semibold">
+            <div class="text-cybertext-500 flex items-center font-mono">
+              <div class="font-semibold">
                 Estimated Launch: 2025/08/12
               </div>
               <div class="flex items-center">
@@ -222,7 +220,7 @@ defmodule VyreWeb.HomeLive do
             <div class="text-cybertext-400 flex gap-6">
               <.link
                 href="https://github.com/aileks/Vyre"
-                class="hover:text-glow hover:text-primary-400 duration-200"
+                class="hover:text-glow hover:text-primary-400 duration-200 ease-in-out"
               >
                 GitHub
               </.link>

@@ -30,7 +30,7 @@ defmodule VyreWeb.Components.Sidebar do
           <div phx-click="open_settings" phx-target={@myself} class="p-2" aria-label="Open settings">
             <Heroicons.icon
               name="cog-6-tooth"
-              class="text-cybertext-400 hover:text-cybertext-50 justify-center duration-200 transition-all cursor-pointer h-5 w-5"
+              class="text-cybertext-400 hover:text-cybertext-50 justify-center duration-200 ease-in-out transition-all cursor-pointer h-5 w-5"
             />
           </div>
         </div>
@@ -159,7 +159,7 @@ defmodule VyreWeb.Components.Sidebar do
         <button
           phx-click="open_commands"
           phx-target={@myself}
-          class="bg-midnight-600 hover:bg-midnight-500 text-cybertext-400 hover:text-cybertext-200 flex w-full items-center rounded-xs px-3 py-2 duration-200 cursor-pointer"
+          class="bg-midnight-600 hover:bg-midnight-500 text-cybertext-400 hover:text-cybertext-200 flex w-full items-center rounded-xs px-3 py-2 duration-200 ease-in-out cursor-pointer"
           aria-label="Open commands"
         >
           <span class="text-primary-500 mr-2">/</span>

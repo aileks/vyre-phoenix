@@ -155,7 +155,7 @@
 }
 
 body {
-    @apply bg-midnight-700 text-cybertext-200 font-sans antialiased;
+    @apply bg-midnight-600 text-cybertext-200 font-sans antialiased;
 }
 
 /* Animations */
@@ -433,7 +433,7 @@ body {
 
 /* Input Utility */
 @utility text-input {
-    @apply bg-midnight-900 focus:border-primary-500 focus:ring-2  focus:outline-none w-full rounded-xs border transition-all duration-200 border-gray-700 px-3 py-2;
+    @apply bg-midnight-900 focus:border-primary-500 focus:ring-2  focus:outline-none w-full rounded-xs border transition-all duration-200 ease-in-out border-gray-700 px-3 py-2;
 
     &:focus {
         box-shadow:
@@ -467,7 +467,7 @@ body {
 
 /* Filter Utility */
 @utility filter-button {
-    @apply rounded-xs px-3 py-1 text-sm transition-all duration-200;
+    @apply rounded-xs px-3 py-1 text-sm transition-all duration-200 ease-in-out;
 }
 
 @utility filter-button-active {

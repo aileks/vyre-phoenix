@@ -57,7 +57,7 @@ defmodule VyreWeb.UserRegistrationLive do
           <:actions>
             <.button
               phx-disable-with="Creating account..."
-              class="text-cybertext-100 mt-4 w-full rounded-xs border border-pink-400 bg-pink-600 px-4 py-2 transition-all duration-200 hover:cursor-pointer hover:bg-pink-500 focus:ring-2 focus:ring-pink-500/50 focus:outline-none disabled:opacity-70 sm:mt-6 sm:py-2.5"
+              class="text-cybertext-100 mt-4 w-full rounded-xs border border-pink-400 bg-pink-600 px-4 py-2 transition-all duration-200 ease-in-out hover:cursor-pointer hover:bg-pink-500 focus:ring-2 focus:ring-pink-500/50 focus:outline-none disabled:opacity-70 sm:mt-6 sm:py-2.5"
             >
               Create Account
             </.button>
@@ -71,12 +71,14 @@ defmodule VyreWeb.UserRegistrationLive do
 
           <.link
             navigate={~p"/users/login"}
-            class="text-verdant-400 hover:text-verdant-300 text-sm transition-colors duration-200 sm:text-base"
+            class="text-verdant-400 hover:text-verdant-300 text-sm transition-colors duration-200 ease-in-out sm:text-base"
           >
             Log in here
           </.link>
         </div>
       </div>
+
+      <.flash_group flash={@flash} />
     </div>
     """
   end

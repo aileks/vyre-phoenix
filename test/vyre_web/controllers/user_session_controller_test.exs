@@ -22,7 +22,7 @@ defmodule VyreWeb.UserSessionControllerTest do
       response = html_response(conn, 200)
       assert response =~ user.email
       assert response =~ ~p"/users/settings"
-      assert response =~ ~p"/users/log_out"
+      assert response =~ ~p"/users/logout"
     end
 
     test "logs the user in with remember me", %{conn: conn, user: user} do
@@ -95,16 +95,16 @@ defmodule VyreWeb.UserSessionControllerTest do
     end
   end
 
-  describe "DELETE /users/log_out" do
+  describe "DELETE /users/logout" do
     test "logs the user out", %{conn: conn, user: user} do
-      conn = conn |> log_in_user(user) |> delete(~p"/users/log_out")
+      conn = conn |> log_in_user(user) |> delete(~p"/users/logout")
       assert redirected_to(conn) == ~p"/"
       refute get_session(conn, :user_token)
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
     end
 
     test "succeeds even if the user is not logged in", %{conn: conn} do
-      conn = delete(conn, ~p"/users/log_out")
+      conn = delete(conn, ~p"/users/logout")
       assert redirected_to(conn) == ~p"/"
       refute get_session(conn, :user_token)
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"

@@ -84,7 +84,7 @@ defmodule VyreWeb.CoreComponents do
                     JS.push("close_modal", value: %{id: @id}) |> JS.exec("data-cancel", to: "##{@id}")
                   }
                   type="button"
-                  class="text-gray-300 hover:text-cybertext-100 transition-colors duration-200 cursor-pointer"
+                  class="text-gray-300 hover:text-cybertext-100 transition-colors duration-200 ease-in-out cursor-pointer"
                   aria-label={gettext("close")}
                 >
                   <Heroicons.icon name="x-circle" class="h-5 w-5" />
@@ -126,20 +126,23 @@ defmodule VyreWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        @kind == :info && "bg-verdant-200 text-verdant-800 ring-verdant-500 fill-cyan-900",
-        @kind == :error && "bg-error-50 text-error-900 shadow-md ring-error-500 fill-error-900"
+        "fixed top-2 right-2 mr-2 w-80 animate-scale-in duration-200 ease-in-out font-mono sm:w-96 z-50 rounded-xs p-3 ring-1",
+        @kind == :info && "text-midnight-700 text-success-300 ring-success-500 fill-success-900",
+        @kind == :error &&
+          "bg-midnight-700 text-error-300 shadow-md ring-error-500 fill-error-900"
       ]}
       {@rest}
     >
       <p :if={@title} class="flex items-center gap-1.5 text-sm font-semibold leading-6">
-        <.icon :if={@kind == :info} name="hero-information-circle-mini" class="h-4 w-4" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle-mini" class="h-4 w-4" />
+        <Heroicons.icon :if={@kind == :info} name="information-circle" class="h-4 w-4" />
+        <Heroicons.icon :if={@kind == :error} name="exclamation-circle" class="h-4 w-4" />
         {@title}
       </p>
+
       <p class="mt-2 text-sm leading-5">{msg}</p>
+
       <button type="button" class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}>
-        <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
+        <Heroicons.icon name="x-mark" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
       </button>
     </div>
     """
@@ -160,6 +163,7 @@ defmodule VyreWeb.CoreComponents do
     <div id={@id}>
       <.flash kind={:info} title={gettext("Success!")} flash={@flash} />
       <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
+
       <.flash
         id="client-error"
         kind={:error}
@@ -242,8 +246,7 @@ defmodule VyreWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-xs py-2 px-3",
-        "font-semibold leading-6 active:text-cybertext-100",
+        "phx-submit-loading:opacity-75 rounded-xs py-2 px-3 transition-colors duration-200 ease-in-out ease-in-out leading-6 active:text-cybertext-100 cursor-pointer",
         @class
       ]}
       {@rest}
@@ -368,7 +371,7 @@ defmodule VyreWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "mt-2 block w-full rounded-lg text-midnight-800 focus:ring-2 sm:text-sm sm:leading-6 min-h-[6rem]",
+          "mt-2 block w-full rounded-xs text-midnight-800 focus:ring-2 sm:text-sm sm:leading-6 min-h-[6rem]",
           @errors == [] && "border-gray-700 focus:border-gray-600",
           @errors != [] && "border-error-400 focus:border-error-400"
         ]}
@@ -505,7 +508,7 @@ defmodule VyreWeb.CoreComponents do
             <td
               :for={{col, i} <- Enum.with_index(@col)}
               phx-click={@row_click && @row_click.(row)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer"]}
+              class={["relative p-0", @row_click && "cursor-pointer"]}
             >
               <div class="block py-4 pr-6">
                 <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-midnight-50 sm:rounded-l-xl" />
@@ -628,7 +631,7 @@ defmodule VyreWeb.CoreComponents do
       to: selector,
       time: 200,
       transition:
-        {"transition-all transform ease-in duration-200",
+        {"transition-all transform ease-in duration-200 ease-in-out",
          "opacity-100 translate-y-0 sm:scale-100",
          "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
     )

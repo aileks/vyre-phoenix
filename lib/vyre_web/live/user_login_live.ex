@@ -31,7 +31,7 @@ defmodule VyreWeb.UserLoginLive do
 
             <.link
               href={~p"/users/reset"}
-              class="text-sm hover:text-electric-500 duration-200 transition-colors text-electric-600 font-semibold"
+              class="text-sm hover:text-electric-500 duration-200 ease-in-out transition-colors text-electric-600 font-semibold"
             >
               Forgot your password?
             </.link>
@@ -40,7 +40,7 @@ defmodule VyreWeb.UserLoginLive do
           <:actions>
             <.button
               phx-disable-with="Logging in..."
-              class="border-verdant-400 bg-verdant-600 hover:bg-verdant-500 focus:ring-verdant-500/50 w-full rounded-xs border transition-colors duration-200 cursor-pointer focus:ring-2 focus:outline-none disabled:opacity-70 sm:py-2.5"
+              class="border-verdant-400 bg-verdant-600 hover:bg-verdant-500 focus:ring-verdant-500/50 w-full rounded-xs border transition-colors duration-200 ease-in-out cursor-pointer focus:ring-2 focus:outline-none disabled:opacity-70 sm:py-2.5"
             >
               Log In <span aria-hidden="true">→</span>
             </.button>
@@ -53,12 +53,14 @@ defmodule VyreWeb.UserLoginLive do
           </span>
           <.link
             navigate={~p"/users/register"}
-            class="text-sm text-pink-500 transition-colors duration-200 hover:text-pink-400 sm:text-base"
+            class="text-sm text-pink-500 transition-colors duration-200 ease-in-out hover:text-pink-400 sm:text-base"
           >
             Register here
           </.link>
         </div>
       </div>
+
+      <.flash_group flash={@flash} />
     </div>
     """
   end

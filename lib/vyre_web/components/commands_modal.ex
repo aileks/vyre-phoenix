@@ -145,7 +145,7 @@ defmodule VyreWeb.Components.CommandsModal do
                 "rounded-xs px-4 py-2",
                 @selected_category == category && "bg-primary-700 text-cybertext-200",
                 @selected_category != category &&
-                  "bg-midnight-600 text-cybertext-400 duration-200 transition-colors cursor-pointer hover:bg-midnight-500"
+                  "bg-midnight-600 text-cybertext-400 duration-200 ease-in-out transition-colors cursor-pointer hover:bg-midnight-500"
               ]}
             >
               {String.capitalize(category)}

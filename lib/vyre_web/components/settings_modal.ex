@@ -71,7 +71,7 @@ defmodule VyreWeb.Components.SettingsModal do
                   phx-value-tab={tab}
                   phx-target={@myself}
                   class={[
-                    "hover:bg-midnight-500 mt-1 px-4 py-3 text-left transition-colors duration-200",
+                    "hover:bg-midnight-500 mt-1 px-4 py-3 text-left transition-colors duration-200 ease-in-out",
                     @active_tab == tab && "bg-midnight-500 text-primary-400",
                     @active_tab != tab && "text-cybertext-400"
                   ]}
@@ -119,8 +119,16 @@ defmodule VyreWeb.Components.SettingsModal do
               </div>
             <% end %>
 
+            <.form for={%{}} action={~p"/users/logout"} method="delete" class="inline">
+              <.button class="bg-error-600 hover:bg-error-500 text-cybertext-200 mr-3" type="submit">
+                Log Out
+              </.button>
+            </.form>
+
             <.button
-              phx-click={JS.patch(@return_to)}
+              phx-click={
+                JS.push("close_modal", value: %{id: @id}) |> JS.exec("data-cancel", to: "##{@id}")
+              }
               class="bg-midnight-400 hover:bg-midnight-300 text-cybertext-300 mr-3"
             >
               Cancel
@@ -516,21 +524,21 @@ defmodule VyreWeb.Components.SettingsModal do
             href="https://github.com/aileks/Vyre"
             target="_blank"
             rel="noopener noreferrer"
-            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200"
+            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200 ease-in-out"
           >
             GitHub
           </.link>
 
           <.link
             href="#"
-            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200"
+            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200 ease-in-out"
           >
             Website
           </.link>
 
           <.link
             href="#"
-            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200"
+            class="bg-midnight-500 hover:bg-midnight-600 text-cybertext-300 rounded-xs px-4 py-2 text-sm transition-colors duration-200 ease-in-out"
           >
             Report Bug
           </.link>
@@ -541,11 +549,6 @@ defmodule VyreWeb.Components.SettingsModal do
   end
 
   # Event handlers
-  def handle_event("close", _, socket) do
-    send(socket.parent_pid, {:close_settings})
-    {:noreply, socket}
-  end
-
   def handle_event("set_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, active_tab: tab)}
   end

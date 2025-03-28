@@ -11,9 +11,9 @@ It's built to be fast, secure, and easy to use without sacrificing scalability o
 ### Feature Goals
 
 - [x] User authentication & authorization
-- [ ] User settings panel
-- [ ] Chat commands list
-- [ ] User statuses
+- [x] User settings panel
+- [x] Chat commands list
+- [x] User statuses
 - [ ] Real-time chat
 - [ ] Chat commands
 - [ ] Rich text support
