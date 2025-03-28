@@ -23,6 +23,7 @@ COPY lib lib
 COPY priv priv
 
 RUN mix deps.compile
+RUN mix ecto.create --prefix ${DB_SCHEMA}
 RUN mix ecto.migrate --prefix ${DB_SCHEMA}
 RUN mix assets.deploy
 RUN mix release
