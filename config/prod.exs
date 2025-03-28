@@ -25,7 +25,9 @@ config :vyre, Vyre.Repo,
     cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
     server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
   ],
-  pool_size: 5
+  pool_size: 5,
+  queue_target: 5000,
+  queue_interval: 5000
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: Vyre.Finch
