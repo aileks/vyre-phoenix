@@ -21,6 +21,7 @@ COPY config config
 
 RUN mix deps.get --only prod && mix deps.compile
 
+COPY assets assets
 COPY lib lib
 COPY priv priv
 
@@ -29,7 +30,7 @@ RUN mix assets.deploy
 RUN mix release
 
 # Deploy
-FROM alpine:3.19 AS app
+FROM alpine:3.21 AS app
 
 ARG MIX_ENV
 ARG GUARDIAN_SECRET_KEY
