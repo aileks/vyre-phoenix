@@ -14,12 +14,11 @@ defmodule Vyre.MixProject do
   end
 
   # Configuration for the OTP application.
-  #
   # Type `mix help compile.app` for more information.
   def application do
     [
       mod: {Vyre.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :faker]
     ]
   end
 
@@ -28,7 +27,6 @@ defmodule Vyre.MixProject do
   defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
-  #
   # Type `mix help deps` for examples and options.
   defp deps do
     [
@@ -61,6 +59,8 @@ defmodule Vyre.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:dotenv, "~> 3.0", only: [:test, :dev]},
+      {:faker, "~> 0.18", only: [:test, :dev]},
+      {:ex_machina, "~> 2.0", only: [:test, :dev]},
       {:hammer, "~> 7.0"}
     ]
   end
@@ -76,6 +76,7 @@ defmodule Vyre.MixProject do
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
+      seed: ["run priv/repo/seeds.exs"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["tailwind vyre", "esbuild vyre"],

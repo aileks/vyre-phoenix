@@ -2,15 +2,16 @@ import Config
 
 # Configure your database
 config :vyre, Vyre.Repo,
-  username: "user",
-  password: "",
+  username: "postgres",
+  password: "postgres",
   hostname: "localhost",
   database: "vyre_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  parameters: [search_path: "dev"],
-  migration_default_prefix: "dev",
-  pool_size: 5
+  parameters: [search_path: "vyre"],
+  migration_default_prefix: "vyre",
+  migration_source: "vyre.schema_migrations",
+  pool_size: 10
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
