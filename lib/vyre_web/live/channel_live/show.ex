@@ -17,10 +17,10 @@ defmodule VyreWeb.ChannelLive.Show do
 
     {:ok,
      socket
-     |> assign(:channel, channel)
-     |> stream(:messages, messages)
-     |> assign(:has_messages, has_messages)
      |> assign(:current_user, socket.assigns.current_user)
+     |> assign(:has_messages, has_messages)
+     |> assign(:channel, channel)
+     |> stream(:messages, messages, dom_id: &"message-#{&1.id}")
      |> assign(:message_form, to_form(%{"content" => ""}))}
   end
 
@@ -49,8 +49,6 @@ defmodule VyreWeb.ChannelLive.Show do
 
     message_with_user = Messages.get_message_with_user(message.id)
 
-    IO.inspect(message_with_user, label: "\n\nNew message from current user")
-
     Phoenix.PubSub.broadcast(
       Vyre.PubSub,
       "channel:#{channel_id}",
@@ -59,8 +57,8 @@ defmodule VyreWeb.ChannelLive.Show do
 
     {:noreply,
      socket
-     |> assign(:message_form, to_form(%{"content" => ""}))
      |> assign(:has_messages, true)
+     |> assign(:message_form, to_form(%{"content" => ""}))
      |> stream_insert(:messages, message_with_user)}
   end
 
@@ -70,8 +68,6 @@ defmodule VyreWeb.ChannelLive.Show do
     # since our own messages are already handled in handle_event
     if message.user_id != socket.assigns.current_user.id do
       message_with_user = Messages.get_message_with_user(message.id)
-
-      IO.inspect(message_with_user, label: "\n\nNew message")
 
       {:noreply,
        socket
