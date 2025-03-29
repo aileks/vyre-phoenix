@@ -1,0 +1,49 @@
+<div class="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+  <div class="bg-midnight-800 shadow-midnight-900/50 animate-scale-in w-full max-w-lg rounded-xs border border-error-800 p-6 shadow-lg">
+    <div class="flex flex-col items-center">
+      <h1 class="text-error-400 mb-4 font-mono text-6xl font-bold">500</h1>
+
+      <div class="bg-midnight-900 mb-6 flex w-full items-center justify-between rounded-xs border border-error-700 px-3 py-2">
+        <code class="text-error-400 font-mono">STATUS: SYSTEM_FAILURE</code>
+        <div class="bg-error-500 animate-blink h-2 w-2 rounded-full"></div>
+      </div>
+
+      <p class="text-cybertext-300 mb-6 text-center text-xl">
+        A critical system error has occurred. The issue has been logged.
+      </p>
+
+      <div class="bg-midnight-900 glitch-text mb-6 w-full rounded-xs border border-error-700 p-3 font-mono text-sm text-error-400">
+        <div class="flex items-center justify-between">
+          <span>// ERROR TRACE</span>
+          <span>{DateTime.utc_now() |> DateTime.to_string()}</span>
+        </div>
+        <div class="mt-2 overflow-hidden">
+          <span>Connection interrupted...</span>
+        </div>
+      </div>
+
+      <div class="scanlines mb-6 w-full border-t border-gray-700"></div>
+
+      <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
+        <a
+          href="/"
+          class="bg-verdant-700 hover:bg-verdant-600 border-verdant-500 rounded-xs border px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out"
+        >
+          Return to Home
+        </a>
+
+        <button
+          onclick="location.reload()"
+          class="bg-midnight-600 hover:bg-midnight-500 rounded-xs border border-gray-700 px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out"
+        >
+          Retry Connection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-cybertext-500 mt-8 font-mono text-sm">
+    Error Code: <span class="text-error-400">VSN-500</span>
+    • <span class="text-verdant-400">Support: support@vyre.app</span>
+  </div>
+</div>
