@@ -15,9 +15,6 @@ defmodule VyreWeb.AppLive do
   end
 
   def handle_params(params, uri, socket) do
-    IO.inspect(params, label: "\n\nParams")
-    IO.inspect(uri, label: "\n\nURI")
-
     socket =
       socket
       |> assign(:current_path, URI.parse(uri).path)
