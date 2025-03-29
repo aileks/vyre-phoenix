@@ -77,7 +77,7 @@ defmodule VyreWeb.Components.Sidebar do
             <div class="mt-1 space-y-1">
               <%= for pm <- @private_messages do %>
                 <.link
-                  href="#"
+                  navigate={~p"/app/channels/#{pm.user_id}"}
                   class={[
                     "flex items-center rounded-xs px-3 py-2",
                     @current_path == "/app/channels/#{pm.id}" && "bg-primary-900 text-primary-300",
@@ -143,7 +143,7 @@ defmodule VyreWeb.Components.Sidebar do
                   <div class="mt-1 ml-2 space-y-1">
                     <%= for channel <- server.channels do %>
                       <.link
-                        href="#"
+                        navigate={~p"/app/channels/#{channel.id}"}
                         class={[
                           "flex items-center rounded-xs px-3 py-1",
                           @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
@@ -255,11 +255,10 @@ defmodule VyreWeb.Components.Sidebar do
       other_user_id = if msg.sender_id == user.id, do: msg.receiver_id, else: msg.sender_id
       other_user = Vyre.Repo.get(Vyre.Accounts.User, other_user_id)
 
-      IO.inspect(other_user, label: "\n\nOther User")
-
       # Add status and username to each private message conversation
       %{
         id: msg.id,
+        user_id: other_user.id,
         avatar_url: other_user.avatar_url,
         unread: unread,
         username: other_user.username,
