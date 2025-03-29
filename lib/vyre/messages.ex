@@ -197,4 +197,24 @@ defmodule Vyre.Messages do
   def change_private_message(%PrivateMessage{} = private_message, attrs \\ %{}) do
     PrivateMessage.changeset(private_message, attrs)
   end
+
+  @doc """
+  Returns the list of messages for a specific channel.
+  """
+  def list_channel_messages(channel_id) do
+    Message
+    |> where([m], m.channel_id == ^channel_id)
+    |> order_by([m], asc: m.inserted_at)
+    |> preload(:user)
+    |> Repo.all()
+  end
+
+  @doc """
+  Get message with preloaded user
+  """
+  def get_message_with_user(message_id) do
+    Message
+    |> Repo.get!(message_id)
+    |> Repo.preload(:user)
+  end
 end

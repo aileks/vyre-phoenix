@@ -69,7 +69,7 @@ defmodule VyreWeb.Router do
       layout: {VyreWeb.Layouts, :app} do
       live "/", AppLive, :index
       live "/friends", AppLive, :friends
-      live "/channels/:channel_id", AppLive, :channels
+      live "/channels/:channel_id", ChannelLive.Show, :show
     end
   end
 
