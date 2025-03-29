@@ -8,31 +8,25 @@
         <div class="bg-error-500 h-2 w-2 rounded-full"></div>
       </div>
 
-      <p class="text-cybertext-300 mb-6 text-center text-xl">
+      <p class="text-cybertext-300 mb-6 text-center text-lg">
         The resource you're looking for has been moved or doesn't exist.
       </p>
 
-      <div class="scanlines mb-6 w-full border-t border-gray-700"></div>
-
       <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-        <a
-          href="/"
+        <.link
+          navigate={~p"/app"}
           class="bg-primary-700 hover:bg-primary-600 border-primary-500 rounded-xs border px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out"
         >
           Return to Home
-        </a>
+        </.link>
 
         <button
           onclick="history.back()"
-          class="bg-midnight-600 hover:bg-midnight-500 rounded-xs border border-gray-700 px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out"
+          class="bg-midnight-600 hover:bg-midnight-500 rounded-xs border border-gray-700 px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out cursor-pointer"
         >
           Go Back
         </button>
       </div>
     </div>
-  </div>
-
-  <div class="text-cybertext-500 mt-8 font-mono text-sm">
-    Error Code: <span class="text-electric-400">VSN-404</span>
   </div>
 </div>

@@ -25,12 +25,12 @@
       <div class="scanlines mb-6 w-full border-t border-gray-700"></div>
 
       <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-        <a
-          href="/"
+        <.link
+          navigate={~p"/app"}
           class="bg-verdant-700 hover:bg-verdant-600 border-verdant-500 rounded-xs border px-4 py-2 font-mono text-sm transition-colors duration-200 ease-in-out"
         >
           Return to Home
-        </a>
+        </.link>
 
         <button
           onclick="location.reload()"
@@ -40,10 +40,5 @@
         </button>
       </div>
     </div>
-  </div>
-
-  <div class="text-cybertext-500 mt-8 font-mono text-sm">
-    Error Code: <span class="text-error-400">VSN-500</span>
-    • <span class="text-verdant-400">Support: support@vyre.app</span>
   </div>
 </div>

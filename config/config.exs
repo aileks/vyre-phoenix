@@ -17,7 +17,7 @@ config :vyre, VyreWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: VyreWeb.ErrorHTML, json: VyreWeb.ErrorJSON],
-    layout: false
+    layout: {VyreWeb.Layouts, :root}
   ],
   pubsub_server: Vyre.PubSub,
   live_view: [signing_salt: "xfYR6OdO"]
