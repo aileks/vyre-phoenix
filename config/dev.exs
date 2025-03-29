@@ -22,7 +22,7 @@ config :vyre, VyreWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   code_reloader: true,
-  debug_errors: false,
+  debug_errors: true,
   secret_key_base: "zQweFo54OWUYiKNN5RYnKi97mbgNNsQK+OLuFx5/tO4n6ujkFlgsO65wv3Yf28+u",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:vyre, ~w(--sourcemap=inline --watch)]},

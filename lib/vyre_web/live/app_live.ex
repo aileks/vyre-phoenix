@@ -5,7 +5,8 @@ defmodule VyreWeb.AppLive do
     socket =
       assign(socket,
         page_title: "Vyre Chat",
-        current_uri: socket.assigns[:uri] || "/",
+        current_path: "/app",
+        current_uri: socket.assigns[:uri] || "/app",
         show_settings: false,
         show_commands: false
       )
@@ -14,10 +15,14 @@ defmodule VyreWeb.AppLive do
   end
 
   def handle_params(params, uri, socket) do
+    IO.inspect(params, label: "\n\nParams")
+    IO.inspect(uri, label: "\n\nURI")
+
     socket =
       socket
       |> assign(:current_path, URI.parse(uri).path)
-      |> assign(:channel_id, params["channel_id"])
+      |> assign(:current_uri, uri)
+      |> assign(:id, params["id"])
 
     {:noreply, socket}
   end

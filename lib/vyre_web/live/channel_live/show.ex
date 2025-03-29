@@ -10,6 +10,7 @@ defmodule VyreWeb.ChannelLive.Show do
       Phoenix.PubSub.subscribe(Vyre.PubSub, "channel:#{channel_id}")
     end
 
+    # Fetch the channel and its messages
     channel = Channels.get_channel!(channel_id)
     messages = Messages.list_channel_messages(channel_id)
 
@@ -26,7 +27,7 @@ defmodule VyreWeb.ChannelLive.Show do
     {:noreply,
      socket
      |> assign(:page_title, "#{socket.assigns.channel.name} | Vyre")
-     |> assign(:channel_id, id)}
+     |> assign(:id, id)}
   end
 
   @impl true
@@ -50,7 +51,7 @@ defmodule VyreWeb.ChannelLive.Show do
     Phoenix.PubSub.broadcast(
       Vyre.PubSub,
       "channel:#{channel_id}",
-      {:new_message, message}
+      {:new_message, Messages.get_message_with_user(message.id)}
     )
 
     {:noreply,
@@ -61,6 +62,13 @@ defmodule VyreWeb.ChannelLive.Show do
 
   @impl true
   def handle_info({:new_message, message}, socket) do
-    {:noreply, update(socket, :messages, fn messages -> messages ++ [message] end)}
+    # We should only append the message if it's not already in our list
+    message_ids = Enum.map(socket.assigns.messages, & &1.id)
+
+    if message.id in message_ids do
+      {:noreply, socket}
+    else
+      {:noreply, update(socket, :messages, fn messages -> messages ++ [message] end)}
+    end
   end
 end
