@@ -59,7 +59,7 @@ defmodule VyreWeb.Components.Sidebar do
     <!-- Private Messages -->
         <div class="mb-4">
           <div
-            class="flex cursor-pointer items-center justify-between px-3 py-1 text-sm"
+            class="flex cursor-pointer items-center justify-between px-1 text-sm"
             phx-click="toggle_pm"
             phx-target={@myself}
           >
@@ -118,7 +118,7 @@ defmodule VyreWeb.Components.Sidebar do
     <!-- Servers -->
         <div>
           <div
-            class="flex cursor-pointer items-center justify-between px-3 py-1 text-sm"
+            class="flex cursor-pointer items-center justify-between px-1 text-sm"
             phx-click="toggle_servers"
             phx-target={@myself}
           >
@@ -127,46 +127,62 @@ defmodule VyreWeb.Components.Sidebar do
             </span>
 
             <Heroicons.icon
-              name={if @servers_expanded, do: "chevron-down", else: "chevron-right"}
+              name={if @all_servers_expanded, do: "chevron-down", else: "chevron-right"}
               class="text-cybertext-500 h-4 w-4"
             />
           </div>
 
-          <%= if @servers_expanded do %>
+          <%= if @all_servers_expanded do %>
             <div class="mt-1 space-y-3">
               <%= for server <- @servers do %>
-                <div>
-                  <div class="flex items-center px-3 py-1">
-                    <span class="text- font-mono text-sm">{server.name}</span>
+                <div
+                  class="px-3 py-1 text-sm"
+                  phx-click="toggle_server"
+                  phx-value-id={server.id}
+                  phx-target={@myself}
+                >
+                  <div class="flex items-center justify-between font-mono text-sm">
+                    {server.name}
+
+                    <Heroicons.icon
+                      name={
+                        if Map.get(@server_expanded, server.id, false),
+                          do: "chevron-double-down",
+                          else: "chevron-double-right"
+                      }
+                      class="text-cybertext-500 h-4 w-4"
+                    />
                   </div>
 
-                  <div class="mt-1 ml-2 space-y-1">
-                    <%= for channel <- server.channels do %>
-                      <.link
-                        navigate={~p"/app/channels/#{channel.id}"}
-                        class={[
-                          "flex items-center rounded-xs px-3 py-1",
-                          @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
-                            "bg-primary-900 text-primary-300",
-                          @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
-                            "text-cybertext-400 hover:bg-midnight-700"
-                        ]}
-                      >
-                        <span class="text-cybertext-500 mr-1">#</span>
-                        <span>{channel.name}</span>
+                  <%= if Map.get(@server_expanded, server.id, false) do %>
+                    <div class="mt-1 ml-2 space-y-1">
+                      <%= for channel <- server.channels do %>
+                        <.link
+                          navigate={~p"/app/channels/#{channel.id}"}
+                          class={[
+                            "flex items-center rounded-xs px-3 py-1",
+                            @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
+                              "bg-primary-900 text-primary-300",
+                            @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
+                              "text-cybertext-400 hover:bg-midnight-700"
+                          ]}
+                        >
+                          <span class="text-cybertext-500 mr-1">#</span>
+                          <span>{channel.name}</span>
 
-                        <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
-                          <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
-                        <% end %>
+                          <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
+                            <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
+                          <% end %>
 
-                        <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
-                          <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
-                            {channel.computed.mention_count}
-                          </div>
-                        <% end %>
-                      </.link>
-                    <% end %>
-                  </div>
+                          <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
+                            <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
+                              {channel.computed.mention_count}
+                            </div>
+                          <% end %>
+                        </.link>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
             </div>
@@ -217,7 +233,8 @@ defmodule VyreWeb.Components.Sidebar do
       socket =
         assign(socket,
           pm_expanded: true,
-          servers_expanded: true,
+          all_servers_expanded: false,
+          server_expanded: %{},
           private_messages: private_messages,
           servers: servers
         )
@@ -229,7 +246,8 @@ defmodule VyreWeb.Components.Sidebar do
       {:ok,
        assign(socket,
          pm_expanded: true,
-         servers_expanded: true,
+         all_servers_expanded: false,
+         server_expanded: %{},
          private_messages: [],
          joined_servers: [],
          owned_servers: []
@@ -305,7 +323,13 @@ defmodule VyreWeb.Components.Sidebar do
   end
 
   def handle_event("toggle_servers", _, socket) do
-    {:noreply, assign(socket, servers_expanded: !socket.assigns.servers_expanded)}
+    {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
+  end
+
+  def handle_event("toggle_server", %{"id" => server_id}, socket) do
+    current_state = Map.get(socket.assigns.server_expanded, server_id, false)
+    new_state = Map.put(socket.assigns.server_expanded, server_id, !current_state)
+    {:noreply, assign(socket, server_expanded: new_state)}
   end
 
   def handle_event("open_commands", _, socket) do
