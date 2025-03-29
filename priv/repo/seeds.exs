@@ -7,9 +7,9 @@ import Ecto.Query
 
 Application.ensure_all_started(:faker)
 
-users = Factory.insert_list(20, :user)
+users = Factory.insert_list(30, :user)
 
-owners = Enum.take_random(users, 5)
+owners = Enum.take_random(users, 10)
 
 Enum.each(owners, fn owner ->
   num_servers = Enum.random(1..3)
@@ -180,66 +180,85 @@ Enum.each(selected_pairs, fn {user1, user2} ->
   end)
 end)
 
-# Helper function to retrieve the latest message
-get_last_message = fn channel_id ->
-  Repo.one(
-    from m in Vyre.Messages.Message,
-      where: m.channel_id == ^channel_id,
-      order_by: [desc: m.inserted_at],
-      limit: 1
-  )
-end
+# Set random status for some users (others will remain with default status "offline")
+status_options = ["online", "away", "busy", "offline"]
 
-# Helper function to retrieve all messages for a channel
-get_channel_messages = fn channel_id ->
-  Repo.all(
-    from m in Vyre.Messages.Message,
-      where: m.channel_id == ^channel_id,
-      order_by: [asc: m.inserted_at]
-  )
-end
+# Select about 30% of users to have non-offline status
+active_users = Enum.take_random(users, trunc(length(users) * 0.3))
 
-# Get all users with server memberships
-server_members = Repo.all(ServerMember) |> Repo.preload(:user)
+Enum.each(active_users, fn user ->
+  user
+  |> Ecto.Changeset.change(%{status: Enum.random(status_options)})
+  |> Repo.update!()
+end)
+
+# Helper function for more natural time distribution
+random_activity_time = fn ->
+  # Distribution of activity times:
+  # - 60% within the last day
+  # - 30% within the last week
+  # - 10% older than a week
+  case :rand.uniform(10) do
+    n when n <= 6 -> DateTime.add(DateTime.utc_now(), -1 * :rand.uniform(86400))
+    n when n <= 9 -> DateTime.add(DateTime.utc_now(), -1 * (:rand.uniform(6) * 86400 + 86400))
+    _ -> DateTime.add(DateTime.utc_now(), -1 * ((:rand.uniform(30) + 7) * 86400))
+  end
+end
 
 Enum.each(channels, fn channel ->
   # Get all members of the server this channel belongs to
-  channel_server_members =
-    Enum.filter(server_members, fn sm ->
-      sm.server_id == channel.server_id
-    end)
+  server_members =
+    Repo.all(
+      from sm in Vyre.Servers.ServerMember,
+        where: sm.server_id == ^channel.server_id,
+        preload: [:user]
+    )
 
-  # Get all messages for this channel
-  messages = get_channel_messages.(channel.id)
-  last_message = List.last(messages)
+  # Get messages in this channel with timestamps
+  messages =
+    Repo.all(
+      from m in Vyre.Messages.Message,
+        where: m.channel_id == ^channel.id,
+        order_by: [asc: m.inserted_at],
+        preload: [:user]
+    )
 
-  Enum.each(channel_server_members, fn member ->
-    user_id = member.user_id
+  unless Enum.empty?(messages) do
+    # For each member, create appropriate UserChannelStatus
+    Enum.each(server_members, fn member ->
+      user_id = member.user.id
 
-    # Randomize read status
-    status_type = Enum.random([:read, :partially_read, :unread])
+      # Determine activity level for this user/channel
+      activity_type =
+        Enum.random([
+          # Regularly checks channel
+          :active,
+          # Occasionally checks channel
+          :casual,
+          # Rarely checks, but does read sometimes
+          :lurker,
+          # Has read historically but inactive lately
+          :inactive,
+          # Recently joined, not much history
+          :new_member,
+          # Never reads this channel
+          :total_inactive
+        ])
 
-    # Determine last read message, timestamp and mention count based on status
-    {last_read_at, last_read_message_id, mention_count} =
-      case status_type do
-        :read ->
-          if last_message do
-            {last_message.inserted_at, last_message.id, 0}
-          else
-            # Use current time if no messages
-            {DateTime.utc_now(), nil, 0}
-          end
+      # Calculate read status based on activity type
+      {last_read_at, last_read_message_id, mention_count} =
+        case activity_type do
+          :active ->
+            random_offset =
+              if length(messages) > 0,
+                do: :rand.uniform(max(1, min(3, length(messages)))),
+                else: 0
 
-        :partially_read ->
-          if Enum.empty?(messages) do
-            # 1 day ago
-            {DateTime.add(DateTime.utc_now(), -86400), nil, Enum.random(0..3)}
-          else
-            idx = max(0, min(floor(length(messages) / 2) - 1, length(messages) - 1))
-            message = Enum.at(messages, idx)
+            message_idx = length(messages) - random_offset
+            message = Enum.at(messages, max(0, message_idx))
 
-            # Count mentions in newer messages
-            newer_messages = Enum.drop(messages, idx + 1)
+            # Count mentions after last read
+            newer_messages = Enum.drop(messages, message_idx + 1)
 
             mention_count =
               Enum.count(newer_messages, fn msg ->
@@ -247,44 +266,186 @@ Enum.each(channels, fn channel ->
               end)
 
             {message.inserted_at, message.id, mention_count}
-          end
 
-        :unread ->
-          # For unread, get mentions from all messages not by this user
-          mention_count =
-            Enum.count(messages, fn msg ->
-              msg.mentions_everyone && msg.user_id != user_id
-            end)
+          :casual ->
+            random_offset =
+              if length(messages) > 0,
+                do: :rand.uniform(max(1, min(5, trunc(length(messages) * 0.3)))),
+                else: 0
 
-          # Use a timestamp in the past but nil for last_read_message_id
-          # 1 week ago
-          {DateTime.add(DateTime.utc_now(), -604_800), nil, mention_count}
+            message_idx = trunc(length(messages) * 0.7) - random_offset
+
+            message = Enum.at(messages, max(0, message_idx))
+            newer_messages = Enum.drop(messages, message_idx + 1)
+
+            mention_count =
+              Enum.count(newer_messages, fn msg ->
+                msg.mentions_everyone && msg.user_id != user_id
+              end)
+
+            {message.inserted_at, message.id, mention_count}
+
+          :lurker ->
+            random_offset =
+              if length(messages) > 0,
+                do: :rand.uniform(max(1, min(3, trunc(length(messages) * 0.2)))),
+                else: 0
+
+            message_idx = trunc(length(messages) * 0.4) - random_offset
+
+            message = Enum.at(messages, max(0, message_idx))
+            newer_messages = Enum.drop(messages, message_idx + 1)
+
+            mention_count =
+              Enum.count(newer_messages, fn msg ->
+                msg.mentions_everyone && msg.user_id != user_id
+              end)
+
+            {message.inserted_at, message.id, mention_count}
+
+          :inactive ->
+            message_idx =
+              if length(messages) > 0,
+                do: :rand.uniform(max(1, min(3, length(messages)))),
+                else: 1
+
+            message = Enum.at(messages, max(0, message_idx - 1))
+            newer_messages = Enum.drop(messages, message_idx)
+
+            # More mentions for inactive users to show buildup
+            mention_count =
+              Enum.count(newer_messages, fn msg ->
+                msg.mentions_everyone && msg.user_id != user_id
+              end)
+
+            {message.inserted_at, message.id, mention_count}
+
+          :new_member ->
+            # New member - no history yet
+            {DateTime.add(DateTime.utc_now(), -86400), nil, 0}
+
+          :total_inactive ->
+            mention_count =
+              Enum.count(messages, fn msg ->
+                msg.mentions_everyone && msg.user_id != user_id
+              end)
+
+            {DateTime.add(DateTime.utc_now(), -604_800), nil, mention_count}
+        end
+
+      # Ensure all required fields are set
+      params = %{
+        user_id: user_id,
+        channel_id: channel.id,
+        last_read_at: last_read_at,
+        last_read_message_id: last_read_message_id,
+        mention_count: mention_count
+      }
+
+      case Repo.get_by(UserChannelStatus, user_id: user_id, channel_id: channel.id) do
+        nil ->
+          %UserChannelStatus{}
+          |> UserChannelStatus.changeset(params)
+          |> Repo.insert()
+
+        existing ->
+          existing
+          |> UserChannelStatus.changeset(params)
+          |> Repo.update()
       end
+    end)
+  end
+end)
 
-    # Ensure all required fields are set
-    params = %{
-      user_id: user_id,
-      channel_id: channel.id,
-      last_read_at: last_read_at,
-      last_read_message_id: last_read_message_id,
-      mention_count: mention_count
-    }
+all_private_messages = Repo.all(Vyre.Messages.PrivateMessage)
 
-    # Double-check the required fields are set
-    IO.inspect(params, label: "Creating UserChannelStatus")
-
-    case Repo.get_by(UserChannelStatus, user_id: user_id, channel_id: channel.id) do
-      nil ->
-        %UserChannelStatus{}
-        |> UserChannelStatus.changeset(params)
-        |> Repo.insert()
-
-      existing ->
-        existing
-        |> UserChannelStatus.changeset(params)
-        |> Repo.update()
+# Group messages by conversation (user pairs)
+conversations =
+  Enum.group_by(
+    all_private_messages,
+    fn msg ->
+      participants = [msg.sender_id, msg.receiver_id] |> Enum.sort() |> Enum.join("-")
+      participants
     end
-  end)
+  )
+
+Enum.each(conversations, fn {_participant_key, messages} ->
+  # Sort messages by timestamp
+  sorted_messages = Enum.sort_by(messages, & &1.inserted_at)
+
+  # For the last 1-3 messages (if they exist), apply read states
+  message_count = length(sorted_messages)
+
+  if message_count > 0 do
+    # For the most recent messages
+    last_msg_count = min(message_count, 1 + :rand.uniform(2))
+    recent_messages = Enum.take(sorted_messages, -last_msg_count)
+
+    # Pattern of reading
+    read_pattern =
+      Enum.random([
+        # Receiver read all messages
+        :all_read,
+        # Receiver didn't read last message(s)
+        :some_unread,
+        # Receiver hasn't read any recent messages
+        :none_read
+      ])
+
+    recent_messages
+    |> Enum.with_index()
+    |> Enum.each(fn {msg, idx} ->
+      should_be_read =
+        case read_pattern do
+          :all_read -> true
+          :some_unread -> idx < length(recent_messages) - 1
+          :none_read -> false
+        end
+
+      # Only update if actually necessary
+      if msg.read != should_be_read do
+        msg
+        |> Ecto.Changeset.change(%{read: should_be_read})
+        |> Repo.update!()
+      end
+    end)
+  end
+end)
+
+# Add some targeted mentions
+Enum.each(users, fn user ->
+  # Select a few random channels (1-3) where this user got mentioned
+  user_server_memberships =
+    Repo.all(
+      from sm in Vyre.Servers.ServerMember,
+        where: sm.user_id == ^user.id,
+        select: sm.server_id
+    )
+
+  potential_channels =
+    Repo.all(
+      from c in Vyre.Channels.Channel,
+        where: c.server_id in ^user_server_memberships
+    )
+
+  if length(potential_channels) > 0 do
+    mention_count = :rand.uniform(min(3, length(potential_channels)))
+    mention_channels = Enum.take_random(potential_channels, mention_count)
+
+    Enum.each(mention_channels, fn channel ->
+      # Get existing status if any
+      status = Repo.get_by(UserChannelStatus, user_id: user.id, channel_id: channel.id)
+
+      if status do
+        # Increase existing mention count
+        new_mention_count = status.mention_count + :rand.uniform(5)
+
+        status
+        |> Ecto.Changeset.change(%{mention_count: new_mention_count})
+        |> Repo.update!()
+      end
+    end)
+  end
 end)
 
 IO.puts("Database seeded successfully!")

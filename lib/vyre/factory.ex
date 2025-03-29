@@ -126,7 +126,7 @@ if Code.ensure_loaded?(ExMachina.Ecto) do
     end
 
     # -------------------------------------------------------------------
-    # USER CHANNEL STATUSES
+    # USER CHANNEL STATUSes
     # -------------------------------------------------------------------
     def user_channel_status_factory do
       %Vyre.Channels.UserChannelStatus{
@@ -138,13 +138,45 @@ if Code.ensure_loaded?(ExMachina.Ecto) do
       }
     end
 
-    # -------------------------------------------------------------------
-    # UNREAD MESSAGES STATUSES
-    # -------------------------------------------------------------------
+    # Factory for active users who read most messages
+    def active_channel_status_factory do
+      build(:user_channel_status, %{
+        last_read_at: DateTime.utc_now() |> DateTime.add(-:rand.uniform(3600)),
+        mention_count: 0
+      })
+    end
+
+    # Factory for casual users who occasionally check
+    def casual_channel_status_factory do
+      build(:user_channel_status, %{
+        last_read_at: DateTime.utc_now() |> DateTime.add(-(:rand.uniform(86400) * 2)),
+        mention_count: :rand.uniform(3)
+      })
+    end
+
+    # Factory for lurkers who rarely check
+    def lurker_channel_status_factory do
+      build(:user_channel_status, %{
+        last_read_at: DateTime.utc_now() |> DateTime.add(-(:rand.uniform(7) * 86400)),
+        mention_count: :rand.uniform(10) + 2
+      })
+    end
+
+    # Factory for completely unread channels
     def unread_channel_status_factory do
       build(:user_channel_status, %{
-        last_read_at: DateTime.utc_now() |> DateTime.add(-86400 * 7),
-        mention_count: :rand.uniform(10)
+        last_read_at: DateTime.utc_now() |> DateTime.add(-86400 * 30),
+        mention_count: :rand.uniform(25) + 5,
+        last_read_message_id: nil
+      })
+    end
+
+    # Factory for new members
+    def new_member_channel_status_factory do
+      build(:user_channel_status, %{
+        last_read_at: DateTime.utc_now(),
+        mention_count: 0,
+        last_read_message_id: nil
       })
     end
   end
