@@ -14,6 +14,10 @@ defmodule Vyre.Channels.Channel do
     belongs_to :server, Vyre.Servers.Server, foreign_key: :server_id
     has_many :messages, Vyre.Messages.Message, on_delete: :delete_all
 
+    many_to_many :users_with_status, Vyre.Accounts.User,
+      join_through: Vyre.Channels.UserChannelStatus,
+      on_delete: :delete_all
+
     timestamps(type: :utc_datetime)
   end
 

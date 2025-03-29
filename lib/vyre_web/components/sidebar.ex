@@ -9,11 +9,16 @@ defmodule VyreWeb.Components.Sidebar do
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <div class="relative mr-3">
-              <div class="bg-primary-600 flex h-10 w-10 items-center justify-center rounded-full text-sm">
-                {@current_user.avatar_url}
-              </div>
+              <img
+                src={@current_user.avatar_url}
+                class="rounded-full h-10 w-10 border border-gray-700"
+                alt="User avatar"
+              />
 
-              <div class="border-midnight-900 status-indicator-away absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2">
+              <div class={[
+                "border-midnight-900 status-indicator-#{@current_user.status}",
+                "absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2"
+              ]}>
               </div>
             </div>
 
@@ -58,9 +63,10 @@ defmodule VyreWeb.Components.Sidebar do
             phx-click="toggle_pm"
             phx-target={@myself}
           >
-            <span class="text-cybertext-500 font-mono text-xs uppercase">
+            <span class="text-cybertext-500 font-mono uppercase">
               Private Messages
             </span>
+
             <Heroicons.icon
               name={if @pm_expanded, do: "chevron-down", else: "chevron-right"}
               class="text-cybertext-500 h-4 w-4"
@@ -79,18 +85,20 @@ defmodule VyreWeb.Components.Sidebar do
                       "text-cybertext-400 hover:bg-midnight-700"
                   ]}
                 >
+                  <%= if pm.unread do %>
+                    <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
+                  <% end %>
+
                   <div class="relative mr-2">
                     <div class="bg-electric-800 flex h-6 w-6 items-center justify-center rounded-xs text-xs">
                       {String.first(pm.username) |> String.upcase()}
                     </div>
+
                     <div class={"border-midnight-800 absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full border-2 status-indicator-#{pm.status}"}>
                     </div>
                   </div>
 
                   <span>{pm.username}</span>
-                  <%= if pm.unread do %>
-                    <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
-                  <% end %>
                 </.link>
               <% end %>
             </div>
@@ -104,9 +112,10 @@ defmodule VyreWeb.Components.Sidebar do
             phx-click="toggle_servers"
             phx-target={@myself}
           >
-            <span class="text-cybertext-500 font-mono text-xs uppercase">
+            <span class="text-cybertext-500 font-mono uppercase">
               Servers
             </span>
+
             <Heroicons.icon
               name={if @servers_expanded, do: "chevron-down", else: "chevron-right"}
               class="text-cybertext-500 h-4 w-4"
@@ -120,6 +129,7 @@ defmodule VyreWeb.Components.Sidebar do
                   <div class="flex items-center px-3 py-1">
                     <span class="text- font-mono text-sm">{server.name}</span>
                   </div>
+
                   <div class="mt-1 ml-2 space-y-1">
                     <%= for channel <- server.channels do %>
                       <.link
@@ -136,11 +146,11 @@ defmodule VyreWeb.Components.Sidebar do
                         <span>{channel.name}</span>
 
                         <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
-                          <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
+                          <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
                         <% end %>
 
                         <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
-                          <div class="bg-error-600 text-error-200 ml-auto rounded-xs px-1.5 text-xs">
+                          <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
                             {channel.computed.mention_count}
                           </div>
                         <% end %>
@@ -163,7 +173,7 @@ defmodule VyreWeb.Components.Sidebar do
           aria-label="Open commands"
         >
           <span class="text-primary-500 mr-2">/</span>
-          <span>Commands</span>
+          Commands
           <kbd class="bg-midnight-800 text-cybertext-500 ml-auto rounded-xs px-1.5 py-0.5 text-xs">
             Ctrl+K
           </kbd>
@@ -227,6 +237,22 @@ defmodule VyreWeb.Components.Sidebar do
       users = [msg.sender_id, msg.receiver_id] |> Enum.sort()
       "#{users}"
     end)
+    |> Enum.map(fn msg ->
+      # Determine if the message is unread (for received messages where the user is the receiver)
+      unread = msg.receiver_id == user.id && !msg.read
+
+      # Get the other user's information
+      other_user_id = if msg.sender_id == user.id, do: msg.receiver_id, else: msg.sender_id
+      other_user = Vyre.Repo.get(Vyre.Accounts.User, other_user_id)
+
+      # Add status and username to each private message conversation
+      %{
+        id: msg.id,
+        unread: unread,
+        username: other_user.username,
+        status: other_user.status || "offline"
+      }
+    end)
   end
 
   defp get_user_servers(user) do
@@ -241,14 +267,19 @@ defmodule VyreWeb.Components.Sidebar do
       |> Enum.sort_by(fn server -> server.name end)
       |> Vyre.Repo.preload(:channels)
 
-    # Enhance channels with unread status and mention count
     Enum.map(servers, fn server ->
       channels =
         Enum.map(server.channels, fn channel ->
+          status = Vyre.Channels.get_user_channel_status(user_id, channel.id)
+
+          # Build computed properties based on status
+          has_unread = Vyre.Channels.channel_has_unread?(user_id, channel.id)
+          mention_count = if status, do: status.mention_count, else: 0
+
           # Add computed properties to each channel
           Map.put(channel, :computed, %{
-            has_unread: Vyre.Channels.channel_has_unread?(user_id, channel.id),
-            mention_count: Vyre.Channels.get_channel_mention_count(user_id, channel.id)
+            has_unread: has_unread,
+            mention_count: mention_count
           })
         end)
 

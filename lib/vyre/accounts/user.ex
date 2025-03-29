@@ -41,6 +41,10 @@ defmodule Vyre.Accounts.User do
       references: :id,
       on_delete: :delete_all
 
+    many_to_many :channels_with_status, Vyre.Channels.Channel,
+      join_through: Vyre.Channels.UserChannelStatus,
+      on_delete: :delete_all
+
     many_to_many :roles, Vyre.Roles.Role,
       join_through: Vyre.Roles.UserRole,
       on_delete: :delete_all

@@ -142,15 +142,13 @@
     --color-status-away: var(--color-warning-300);
     --color-status-busy: var(--color-error-600);
 
+    /* Animation Stuff */
     --animation-duration-short: 0.05s;
     --animation-duration-normal: 0.2s;
     --animation-duration-long: 0.4s;
-
-    /* Animation easing */
     --animation-easing-normal: ease-in-out;
     --animation-easing-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --animation-easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-
     --animation-delay-short: 0.05s;
 }
 
