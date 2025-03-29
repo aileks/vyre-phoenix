@@ -297,20 +297,24 @@ body {
 }
 
 @utility status-indicator-online {
+    @apply status-indicator;
     background-color: var(--color-status-online);
     box-shadow: 0 0 3px var(--color-status-online);
 }
 
 @utility status-indicator-offline {
+    @apply status-indicator;
     background-color: var(--color-status-offline);
 }
 
 @utility status-indicator-away {
+    @apply status-indicator;
     background-color: var(--color-status-away);
     box-shadow: 0 0 3px var(--color-status-away);
 }
 
 @utility status-indicator-busy {
+    @apply status-indicator;
     background-color: var(--color-status-busy);
     box-shadow: 0 0 5px var(--color-status-busy);
 }

@@ -85,20 +85,30 @@ defmodule VyreWeb.Components.Sidebar do
                       "text-cybertext-400 hover:bg-midnight-700"
                   ]}
                 >
+                  <div class="relative mr-2">
+                    <img
+                      src={pm.avatar_url || "/images/default-avatar.png"}
+                      alt={pm.username}
+                      class="bg-midnight-700 h-8 w-8 rounded-full flex items-center justify-center"
+                    />
+
+                    <%= case pm.status do %>
+                      <% "online" -> %>
+                        <div class="status-indicator-online absolute -right-0.5 -bottom-0.5"></div>
+                      <% "away" -> %>
+                        <div class="status-indicator-away absolute -right-0.5 -bottom-0.5"></div>
+                      <% "busy" -> %>
+                        <div class="status-indicator-busy absolute -right-0.5 -bottom-0.5"></div>
+                      <% _ -> %>
+                        <div class="status-indicator-offline absolute -right-0.5 -bottom-0.5"></div>
+                    <% end %>
+                  </div>
+
+                  <span class="flex-grow truncate">{pm.username}</span>
+
                   <%= if pm.unread do %>
                     <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
                   <% end %>
-
-                  <div class="relative mr-2">
-                    <div class="bg-electric-800 flex h-6 w-6 items-center justify-center rounded-xs text-xs">
-                      {String.first(pm.username) |> String.upcase()}
-                    </div>
-
-                    <div class={"border-midnight-800 absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full border-2 status-indicator-#{pm.status}"}>
-                    </div>
-                  </div>
-
-                  <span>{pm.username}</span>
                 </.link>
               <% end %>
             </div>
@@ -245,12 +255,15 @@ defmodule VyreWeb.Components.Sidebar do
       other_user_id = if msg.sender_id == user.id, do: msg.receiver_id, else: msg.sender_id
       other_user = Vyre.Repo.get(Vyre.Accounts.User, other_user_id)
 
+      IO.inspect(other_user, label: "\n\nOther User")
+
       # Add status and username to each private message conversation
       %{
         id: msg.id,
+        avatar_url: other_user.avatar_url,
         unread: unread,
         username: other_user.username,
-        status: other_user.status || "offline"
+        status: other_user.status
       }
     end)
   end
