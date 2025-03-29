@@ -50,9 +50,13 @@ defmodule Vyre.Messages do
 
   """
   def create_message(attrs \\ %{}) do
-    %Message{}
-    |> Message.changeset(attrs)
-    |> Repo.insert()
+    message =
+      %Message{}
+      |> Message.changeset(attrs)
+      |> Repo.insert()
+
+    IO.inspect(message, label: "\n\nCreated message before insertion")
+    message
   end
 
   @doc """

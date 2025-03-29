@@ -211,8 +211,8 @@ body {
     }
 }
 
-@utility chat-avatar {
-    @apply bg-midnight-900 mx-2 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-800 font-mono text-xs;
+@utility user-avatar {
+    @apply rounded-full border border-primary-800;
 }
 
 @utility chat-header {

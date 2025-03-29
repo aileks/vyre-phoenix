@@ -24,7 +24,7 @@ defmodule Vyre.Channels.Channel do
   @doc false
   def changeset(channel, attrs) do
     channel
-    |> cast(attrs, [:name, :topic, :description, :type])
-    |> validate_required([:name, :topic, :description, :type])
+    |> cast(attrs, [:name, :type, :description, :topic, :server_id])
+    |> validate_required([:name, :type, :description, :server_id])
   end
 end

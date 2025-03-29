@@ -1,47 +1,55 @@
 <div class="flex h-full flex-col">
   <div class="bg-midnight-800 flex items-center border-b border-gray-700 px-4 py-3">
     <div class="flex-1">
-      <h2 class="text-xl font-semibold flex items-center">
+      <h2 class="text-xl font-semibold font-mono flex items-center">
         <span class="text-verdant-400 mr-2">#</span>
         {@channel.name}
       </h2>
-      <p class="text-cybertext-500 text-sm">{@channel.topic}</p>
+
+      <p class="text-cybertext-400 text-sm">{@channel.topic}</p>
     </div>
 
-    <div class="flex space-x-2">
-      <button class="hover:bg-midnight-700 p-2 rounded-xs transition-colors">
-        <Heroicons.icon name="user-group" class="h-5 w-5" />
+    <div class="flex space-x-4">
+      <button class="cursor-pointer">
+        <Heroicons.icon name="users" class="h-5 w-5 fill-white" />
       </button>
-      <button class="hover:bg-midnight-700 p-2 rounded-xs transition-colors">
+
+      <button class="cursor-pointer">
         <Heroicons.icon name="information-circle" class="h-5 w-5" />
       </button>
     </div>
   </div>
 
-  <div class="flex-1 overflow-y-auto p-4 space-y-4" id="messages-container" phx-update="append">
-    <%= if Enum.empty?(@messages) do %>
-      <div class="text-center text-cybertext-500 py-8">
+  <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-midnight-700" id="messages-container">
+    <%= if not @has_messages do %>
+      <div class="text-center py-8">
         <p class="text-lg">No messages yet</p>
         <p class="text-sm">Be the first to start the conversation!</p>
       </div>
     <% else %>
-      <%= for message <- @messages do %>
-        <div class="chat-message-group">
+      <%= for {dom_id, message} <- @streams.messages do %>
+        <div class="chat-message-group" id={dom_id}>
           <div class="flex items-start">
-            <div class="chat-avatar">
-              {String.first(message.user.username)}
-            </div>
+            <img
+              class="user-avatar h-12 w-12"
+              src={message.user.avatar_url}
+              alt={message.user.username}
+            />
+
             <div class="flex-1">
               <div class="chat-header">
                 <span class="chat-display-name">{message.user.username}</span>
+
                 <span class="chat-timestamp">
                   {Calendar.strftime(message.inserted_at, "%H:%M")}
                 </span>
               </div>
-              <div class="bg-midnight-600 px-2 py-1 rounded-xs">
+
+              <div class="px-2 py-1 rounded-xs">
                 {message.content}
+
                 <%= if message.edited do %>
-                  <span class="text-cybertext-500 text-xs ml-1">(edited)</span>
+                  <span class="text-gray-300 italic text-xs ml-1">(edited)</span>
                 <% end %>
               </div>
             </div>
@@ -59,7 +67,7 @@
           name="content"
           placeholder={"Message ##{@channel.name}"}
           value={@message_form[:content].value}
-          class="bg-midnight-700 text-cybertext-200 w-full rounded-xs border border-gray-700 px-4 py-2 focus:border-primary-500 focus:outline-none"
+          class="bg-midnight-700 w-full rounded-xs border border-gray-700 px-4 py-2 focus:border-primary-500 focus:outline-none"
           autocomplete="off"
         />
       </div>

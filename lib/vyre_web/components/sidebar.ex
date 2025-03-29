@@ -9,11 +9,7 @@ defmodule VyreWeb.Components.Sidebar do
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <div class="relative mr-3">
-              <img
-                src={@current_user.avatar_url}
-                class="rounded-full h-10 w-10 border border-gray-700"
-                alt="User avatar"
-              />
+              <img src={@current_user.avatar_url} class="user-avatar h-10 w-10" alt="User avatar" />
 
               <div class={[
                 "border-midnight-900 status-indicator-#{@current_user.status}",
@@ -89,7 +85,7 @@ defmodule VyreWeb.Components.Sidebar do
                     <img
                       src={pm.avatar_url || "/images/default-avatar.png"}
                       alt={pm.username}
-                      class="bg-midnight-700 h-8 w-8 rounded-full flex items-center justify-center"
+                      class="user-avatar h-8 w-8"
                     />
 
                     <%= case pm.status do %>

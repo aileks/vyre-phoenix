@@ -17,7 +17,7 @@ defmodule Vyre.Servers.ServerMember do
   @doc false
   def changeset(server_member, attrs) do
     server_member
-    |> cast(attrs, [:nickname])
-    |> validate_required([:nickname])
+    |> cast(attrs, [:nickname, :user_id, :server_id])
+    |> validate_required([:nickname, :user_id, :server_id])
   end
 end

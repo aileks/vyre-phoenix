@@ -17,7 +17,7 @@ defmodule Vyre.Friends.Friend do
   @doc false
   def changeset(friend, attrs) do
     friend
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:user_id, :friend_id])
+    |> validate_required([:user_id, :friend_id])
   end
 end

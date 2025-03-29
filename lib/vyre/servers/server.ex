@@ -25,7 +25,7 @@ defmodule Vyre.Servers.Server do
   @doc false
   def changeset(server, attrs) do
     server
-    |> cast(attrs, [:name, :invite, :description, :icon_url])
-    |> validate_required([:name, :invite, :description, :icon_url])
+    |> cast(attrs, [:name, :invite, :description, :icon_url, :owner_id])
+    |> validate_required([:name, :invite, :description, :icon_url, :owner_id])
   end
 end

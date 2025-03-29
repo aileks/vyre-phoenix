@@ -15,7 +15,7 @@ defmodule Vyre.Roles.UserRole do
   @doc false
   def changeset(user_role, attrs) do
     user_role
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:user_id, :role_id])
+    |> validate_required([:user_id, :role_id])
   end
 end

@@ -18,7 +18,7 @@ defmodule Vyre.Messages.PrivateMessage do
   @doc false
   def changeset(private_message, attrs) do
     private_message
-    |> cast(attrs, [:content, :read])
-    |> validate_required([:content, :read])
+    |> cast(attrs, [:sender_id, :receiver_id, :content, :read])
+    |> validate_required([:sender_id, :receiver_id, :content, :read])
   end
 end

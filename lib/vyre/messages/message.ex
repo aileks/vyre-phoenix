@@ -20,7 +20,7 @@ defmodule Vyre.Messages.Message do
   @doc false
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:content, :edited, :mentions_everyone])
-    |> validate_required([:content, :edited, :mentions_everyone])
+    |> cast(attrs, [:user_id, :channel_id, :content, :edited, :mentions_everyone])
+    |> validate_required([:user_id, :channel_id, :content, :edited, :mentions_everyone])
   end
 end
