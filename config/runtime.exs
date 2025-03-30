@@ -33,24 +33,24 @@ if config_env() == :prod do
         environment variable DB_PASSWORD is missing.
       """
 
-  #   db_user =
-  #     System.get_env("DB_USER") ||
-  #       raise """
-  #         environment variable DB_USER is missing.
-  #       """
+  db_user =
+    System.get_env("DB_USER") ||
+      raise """
+        environment variable DB_USER is missing.
+      """
 
-  # db_host =
-  #   System.get_env("DB_HOST") ||
-  #     raise """
-  #       environment variable DB_HOST is missing.
-  #     """
+  db_host =
+    System.get_env("DB_HOST") ||
+      raise """
+        environment variable DB_HOST is missing.
+      """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
-      username: "postgres.jfeyxmnuqhlxadiksygf",
-      hostname: "aws-0-us-east-1.pooler.supabase.com",
+      username: db_user,
+      hostname: db_host,
       password: db_password,
       port: 5432,
       database: "postgres",
@@ -60,7 +60,8 @@ if config_env() == :prod do
         cacertfile: "/etc/ssl/certs/prod-ca-2021.crt"
       ],
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
-      socket_options: maybe_ipv6
+      socket_options: maybe_ipv6,
+      pool_mode: :session
   end
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
