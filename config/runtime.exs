@@ -22,10 +22,15 @@ end
 
 if config_env() == :prod do
   db_schema =
-    System.get_env("DATABASE_SCHEMA") ||
+    System.get_env("DB_SCHEMA") ||
       raise """
         environment variable DATABASE_SCHEMA is missing.
-        For example: prod
+      """
+
+  db_password =
+    System.get_env("DATABASE_PASSWORD") ||
+      raise """
+        environment variable DATABASE_PASSWORD is missing.
       """
 
   # database_url =
@@ -40,7 +45,7 @@ if config_env() == :prod do
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
       username: "postgres.vzpwrvlccnnhlkxissdi",
-      password: System.get_env("DB_PASSWORD"),
+      password: db_password,
       hostname: "aws-0-us-east-1.pooler.supabase.com",
       port: 5432,
       database: "postgres",
