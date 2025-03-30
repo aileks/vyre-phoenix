@@ -6,6 +6,7 @@ defmodule Vyre.Channels do
   import Ecto.Query, warn: false
 
   alias Vyre.Repo
+  alias Vyre.Servers
   alias Vyre.Messages.Message
   alias Vyre.Channels.Channel
   alias Vyre.Channels.UserChannelStatus
@@ -247,6 +248,37 @@ defmodule Vyre.Channels do
           :count
         )
     end
+  end
+
+  def broadcast_status_updates(channel_id, message) do
+    # Get all members for this channel
+    members = Servers.list_server_members()
+
+    # For each member, update their status
+    Enum.each(members, fn member ->
+      # Skip the sender of the message
+      unless member.user_id == message.user_id do
+        # Calculate new status
+        mention_count =
+          if message.mentions_everyone do
+            get_channel_mention_count(member.user_id, channel_id) + 1
+          else
+            get_channel_mention_count(member.user_id, channel_id)
+          end
+
+        status = %{
+          has_unread: true,
+          mention_count: mention_count
+        }
+
+        # Broadcast to this user's status topic
+        Phoenix.PubSub.broadcast(
+          Vyre.PubSub,
+          "user:#{member.user_id}:status",
+          {:channel_status_update, channel_id, status}
+        )
+      end
+    end)
   end
 
   # Helper to get latest message ID in a channel

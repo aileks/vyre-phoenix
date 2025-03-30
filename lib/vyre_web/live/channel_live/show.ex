@@ -8,6 +8,11 @@ defmodule VyreWeb.ChannelLive.Show do
   def mount(%{"id" => channel_id}, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Vyre.PubSub, "channel:#{channel_id}")
+
+      Phoenix.PubSub.subscribe(
+        Vyre.PubSub,
+        "user:#{socket.assigns.current_user.id}:status"
+      )
     end
 
     # Fetch the channel and its messages
@@ -26,10 +31,23 @@ defmodule VyreWeb.ChannelLive.Show do
 
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
-    {:noreply,
-     socket
-     |> assign(:page_title, "#{socket.assigns.channel.name} | Vyre")
-     |> assign(:id, id)}
+    if connected?(socket) do
+      user_id = socket.assigns.current_user.id
+
+      status = %{has_unread: false, mention_count: 0}
+
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        "user:#{user_id}:status",
+        {:channel_status_update, id, status}
+      )
+
+      Task.start(fn ->
+        Vyre.Channels.mark_channel_as_read(user_id, id)
+      end)
+    end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -64,11 +82,40 @@ defmodule VyreWeb.ChannelLive.Show do
   end
 
   @impl true
+  def handle_event("mark_as_read", %{"channel_id" => channel_id}, socket) do
+    user_id = socket.assigns.current_user.id
+
+    # Update optimistically
+    socket =
+      update_in(socket.assigns.channels, fn channels ->
+        Enum.map(channels, fn channel ->
+          if channel.id == channel_id do
+            put_in(channel.computed.has_unread, false)
+            |> put_in([Access.key(:computed), Access.key(:mention_count)], 0)
+          else
+            channel
+          end
+        end)
+      end)
+
+    # Async task to update with server
+    Task.start(fn ->
+      Vyre.Channels.mark_channel_as_read(user_id, channel_id)
+    end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_info({:new_message, message}, socket) do
     # We only need to check if it's from another user
     # since our own messages are already handled in handle_event
     if message.user_id != socket.assigns.current_user.id do
       message_with_user = Messages.get_message_with_user(message.id)
+      channel_id = message.channel_id
+      user_id = socket.assigns.current_user.id
+
+      :ets.delete(:channel_status_cache, "#{user_id}:#{channel_id}")
 
       {:noreply,
        socket
@@ -77,6 +124,23 @@ defmodule VyreWeb.ChannelLive.Show do
     else
       {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info({:channel_status_update, channel_id, status}, socket) do
+    socket =
+      update_in(socket.assigns.channels, fn channels ->
+        Enum.map(channels, fn channel ->
+          if channel.id == channel_id do
+            put_in(channel.computed.has_unread, status.has_unread)
+            |> put_in([Access.key(:computed), Access.key(:mention_count)], status.mention_count)
+          else
+            channel
+          end
+        end)
+      end)
+
+    {:noreply, socket}
   end
 
   def format_message_date(naive_datetime) do

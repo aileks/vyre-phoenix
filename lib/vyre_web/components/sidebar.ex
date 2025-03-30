@@ -1,6 +1,56 @@
 defmodule VyreWeb.Components.Sidebar do
   use VyreWeb, :live_component
 
+  alias Vyre.Channels
+  alias Vyre.Repo
+
+  @impl true
+  def mount(socket) do
+    {:ok, socket}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    if assigns[:current_user] do
+      current_user = assigns.current_user
+
+      user_with_data =
+        Vyre.Repo.preload(current_user, [
+          :sent_messages,
+          :received_messages,
+          joined_servers: [:channels],
+          owned_servers: [:channels]
+        ])
+
+      private_messages = get_user_private_messages(user_with_data)
+      servers = get_user_servers_with_status(user_with_data)
+
+      socket =
+        assign(socket,
+          pm_expanded: true,
+          all_servers_expanded: false,
+          server_expanded: %{},
+          private_messages: private_messages,
+          servers: servers
+        )
+
+      {:ok, socket}
+    else
+      # Handle case when no current_user is provided
+      {:ok,
+       assign(socket,
+         pm_expanded: true,
+         all_servers_expanded: false,
+         server_expanded: %{},
+         private_messages: [],
+         servers: []
+       )}
+    end
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="bg-midnight-900 flex h-full w-64 flex-col border-r border-gray-700">
@@ -205,50 +255,68 @@ defmodule VyreWeb.Components.Sidebar do
     """
   end
 
-  def mount(socket) do
-    {:ok, socket}
+  def get_channels_with_status_for_user(user_id) do
+    # Get channels the user has access to
+    channels = get_user_channels(user_id)
+
+    # Get status for all channels in one batch from cache
+    channel_ids = Enum.map(channels, & &1.id)
+    statuses = batch_get_channel_statuses(user_id, channel_ids)
+
+    # Combine the data
+    Enum.map(channels, fn channel ->
+      status = Map.get(statuses, channel.id, %{has_unread: false, mention_count: 0})
+      Map.put(channel, :computed, status)
+    end)
   end
 
-  def update(assigns, socket) do
-    socket = assign(socket, assigns)
+  def batch_get_channel_statuses(user_id, channel_ids) do
+    # Try to get all statuses from cache first
+    cached_results =
+      Enum.map(channel_ids, fn channel_id ->
+        key = "#{user_id}:#{channel_id}"
 
-    if assigns[:current_user] do
-      current_user = assigns.current_user
+        case :ets.lookup(:channel_status_cache, key) do
+          [{^key, status}] -> {channel_id, status}
+          [] -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+      |> Map.new(fn {channel_id, status} ->
+        {channel_id,
+         %{
+           has_unread: channel_has_unread?(user_id, channel_id, status),
+           mention_count: status.mention_count || 0
+         }}
+      end)
 
-      user_with_data =
-        Vyre.Repo.preload(current_user, [
-          :sent_messages,
-          :received_messages,
-          joined_servers: [:channels],
-          owned_servers: [:channels]
-        ])
+    # For any missing channels, batch fetch from DB
+    missing_channel_ids =
+      Enum.reject(channel_ids, &Map.has_key?(cached_results, &1))
 
-      private_messages = get_user_private_messages(user_with_data)
-      servers = get_user_servers(user_with_data)
-
-      socket =
-        assign(socket,
-          pm_expanded: true,
-          all_servers_expanded: false,
-          server_expanded: %{},
-          private_messages: private_messages,
-          servers: servers
+    missing_statuses =
+      if Enum.empty?(missing_channel_ids) do
+        %{}
+      else
+        Repo.all(
+          from ucs in UserChannelStatus,
+            where: ucs.user_id == ^user_id and ucs.channel_id in ^missing_channel_ids,
+            select: {ucs.channel_id, ucs}
         )
+        |> Map.new(fn {channel_id, status} ->
+          # Cache the result
+          :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}", status})
 
-      {:ok, socket}
-    else
-      # Handle case when no current_user is provided
-      # This should NOT happen!
-      {:ok,
-       assign(socket,
-         pm_expanded: true,
-         all_servers_expanded: false,
-         server_expanded: %{},
-         private_messages: [],
-         joined_servers: [],
-         owned_servers: []
-       )}
-    end
+          # Return the computed status values
+          {channel_id,
+           %{
+             has_unread: channel_has_unread?(user_id, channel_id, status),
+             mention_count: status.mention_count || 0
+           }}
+        end)
+      end
+
+    Map.merge(cached_results, missing_statuses)
   end
 
   defp get_user_private_messages(user) do
@@ -313,28 +381,108 @@ defmodule VyreWeb.Components.Sidebar do
     end)
   end
 
+  defp get_user_servers_with_status(user) do
+    owned = user.owned_servers || []
+    joined = user.joined_servers || []
+
+    user_id = user.id
+
+    servers =
+      (owned ++ joined)
+      |> Enum.uniq_by(fn server -> server.id end)
+      |> Enum.sort_by(fn server -> server.name end)
+      |> Vyre.Repo.preload(:channels)
+
+    Enum.map(servers, fn server ->
+      channels =
+        Enum.map(server.channels, fn channel ->
+          # Efficiently check status using cache when possible
+          has_unread = get_cached_unread_status(user_id, channel.id)
+          mention_count = get_cached_mention_count(user_id, channel.id)
+
+          # Add computed properties to each channel
+          Map.put(channel, :computed, %{
+            has_unread: has_unread,
+            mention_count: mention_count
+          })
+        end)
+
+      %{server | channels: channels}
+    end)
+  end
+
+  defp get_cached_unread_status(user_id, channel_id) do
+    # Try to get from cache first
+    case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:unread") do
+      [{_, value}] ->
+        value
+
+      [] ->
+        # Cache miss - get from Channels context
+        result = Channels.channel_has_unread?(user_id, channel_id)
+        # Cache the result with 30 second TTL
+        :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:unread", result})
+        # Set a timer to invalidate after 30 seconds
+        Process.send_after(self(), {:invalidate_cache, "#{user_id}:#{channel_id}:unread"}, 30_000)
+        result
+    end
+  end
+
+  defp get_cached_mention_count(user_id, channel_id) do
+    # Try to get from cache first
+    case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:mentions") do
+      [{_, count}] ->
+        count
+
+      [] ->
+        # Cache miss - get from Channels context
+        count = Channels.get_channel_mention_count(user_id, channel_id)
+        # Cache the result with 30 second TTL
+        :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:mentions", count})
+        # Set a timer to invalidate after 30 seconds
+        Process.send_after(
+          self(),
+          {:invalidate_cache, "#{user_id}:#{channel_id}:mentions"},
+          30_000
+        )
+
+        count
+    end
+  end
+
   # Event handlers
+  @impl true
   def handle_event("toggle_pm", _, socket) do
     {:noreply, assign(socket, pm_expanded: !socket.assigns.pm_expanded)}
   end
 
+  @impl true
   def handle_event("toggle_servers", _, socket) do
     {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
   end
 
+  @impl true
   def handle_event("toggle_server", %{"id" => server_id}, socket) do
     current_state = Map.get(socket.assigns.server_expanded, server_id, false)
     new_state = Map.put(socket.assigns.server_expanded, server_id, !current_state)
     {:noreply, assign(socket, server_expanded: new_state)}
   end
 
+  @impl true
   def handle_event("open_commands", _, socket) do
     send(self(), {:open_commands})
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event("open_settings", _, socket) do
     send(self(), {:open_settings})
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:invalidate_cache, key}, socket) do
+    :ets.delete(:channel_status_cache, key)
     {:noreply, socket}
   end
 end
