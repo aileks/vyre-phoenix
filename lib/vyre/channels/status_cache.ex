@@ -14,10 +14,15 @@ defmodule Vyre.Channels.StatusCache do
     {:ok, %{}}
   end
 
+  def make_key(user_id, channel_id) do
+    "#{user_id}:#{channel_id}"
+  end
+
   def get_status(user_id, channel_id) do
-    # Try cache first, fall back to database
-    case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}") do
-      [{_, status}] ->
+    key = make_key(user_id, channel_id)
+
+    case :ets.lookup(:channel_status_cache, key) do
+      [{^key, status}] ->
         {:ok, status}
 
       [] ->
@@ -29,7 +34,7 @@ defmodule Vyre.Channels.StatusCache do
           )
 
         if status do
-          :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}", status})
+          :ets.insert(:channel_status_cache, {key, status})
           {:ok, status}
         else
           {:error, :not_found}
@@ -38,21 +43,22 @@ defmodule Vyre.Channels.StatusCache do
   end
 
   def update_status(user_id, channel_id, params) do
-    # Update DB
-    status =
-      case Vyre.Repo.get_by(Vyre.Channels.UserChannelStatus,
-             user_id: user_id,
-             channel_id: channel_id
-           ) do
-        nil -> %Vyre.Channels.UserChannelStatus{user_id: user_id, channel_id: channel_id}
-        existing -> existing
-      end
+    key = make_key(user_id, channel_id)
+
+    # Create a proper struct for the cache
+    cache_entry = struct(Vyre.Channels.UserChannelStatus, params)
 
     # Update cache
-    {:ok, updated_status} =
-      Vyre.Repo.insert_or_update(Vyre.Channels.UserChannelStatus.changeset(status, params))
+    :ets.insert(:channel_status_cache, {key, cache_entry})
 
-    :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}", updated_status})
-    {:ok, updated_status}
+    # Add updated_at timestamp for cache freshness tracking
+    cache_entry = Map.put(cache_entry, :updated_at, DateTime.utc_now())
+
+    {:ok, cache_entry}
+  end
+
+  def invalidate_status(user_id, channel_id) do
+    key = make_key(user_id, channel_id)
+    :ets.delete(:channel_status_cache, key)
   end
 end

@@ -113,8 +113,8 @@ defmodule Vyre.Servers do
       [%ServerMember{}, ...]
 
   """
-  def list_server_members do
-    Repo.all(ServerMember)
+  def list_server_members(server_id) do
+    Repo.all(from sm in ServerMember, where: sm.server_id == ^server_id)
   end
 
   @doc """

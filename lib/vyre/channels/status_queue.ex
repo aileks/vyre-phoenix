@@ -55,7 +55,8 @@ defmodule Vyre.Channels.StatusQueue do
         |> Enum.each(fn batch ->
           Vyre.Repo.transaction(fn ->
             Enum.each(batch, fn update ->
-              Vyre.Channels.mark_channel_as_read(
+              # Use the existing function that's already in your codebase
+              Vyre.Channels.write_channel_status(
                 update.user_id,
                 update.channel_id,
                 update.last_read_message_id

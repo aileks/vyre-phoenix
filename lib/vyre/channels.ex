@@ -112,75 +112,35 @@ defmodule Vyre.Channels do
   ## ----------------------------- ##
 
   def mark_channel_as_read(user_id, channel_id, message_id \\ nil) do
-    # Try getting the status from cache first
-    last_status =
-      case Vyre.Channels.StatusCache.get_status(user_id, channel_id) do
-        {:ok, status} -> status
-        {:error, :not_found} -> nil
-      end
-
-    # Decide if we should perform a full update or just cache
-    should_update =
-      cond do
-        # No previous status - always update
-        is_nil(last_status) ->
-          true
-
-        # Last update was more than 1 minute ago
-        DateTime.diff(DateTime.utc_now(), last_status.updated_at) > 60 ->
-          true
-
-        !is_nil(message_id) && !is_nil(last_status.last_read_message_id) ->
-          newer_message = Repo.get(Message, message_id)
-          older_message = Repo.get(Message, last_status.last_read_message_id)
-
-          if newer_message && older_message do
-            time_diff = DateTime.diff(newer_message.inserted_at, older_message.inserted_at)
-            time_diff > 300
-          else
-            true
-          end
-
-        # Otherwise, skip the full update
-        true ->
-          false
-      end
+    IO.puts("\n\nCHANNELS DEBUG: Marking channel #{channel_id} as read for user #{user_id}\n\n")
 
     current_message_id = message_id || get_latest_message_id(channel_id)
 
-    if should_update do
-      params = %{
-        user_id: user_id,
-        channel_id: channel_id,
-        last_read_at: DateTime.utc_now(),
-        mention_count: 0,
-        last_read_message_id: current_message_id
-      }
+    # Create params for the update
+    params = %{
+      user_id: user_id,
+      channel_id: channel_id,
+      last_read_at: DateTime.utc_now(),
+      mention_count: 0,
+      last_read_message_id: current_message_id
+    }
 
-      StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
-      StatusCache.update_status(user_id, channel_id, params)
+    # Update cache immediately
+    {:ok, _} = StatusCache.update_status(user_id, channel_id, params)
 
-      {:ok, :queued_for_update}
-    else
-      if last_status do
-        cache_params = %{
-          user_id: user_id,
-          channel_id: channel_id,
-          last_read_at: DateTime.utc_now(),
-          mention_count: last_status.mention_count,
-          last_read_message_id: current_message_id || last_status.last_read_message_id
-        }
+    # Broadcast change to all clients for this user
+    status_update = %{has_unread: false, mention_count: 0}
 
-        # Update in cache only
-        StatusCache.update_status(user_id, channel_id, cache_params)
-        {:ok, :cache_updated}
-      else
-        # This is unusual but possible if cache was invalidated
-        # Fall back to queue to ensure data integrity
-        StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
-        {:ok, :fallback_queued}
-      end
-    end
+    Phoenix.PubSub.broadcast(
+      Vyre.PubSub,
+      "user:#{user_id}:status",
+      {:channel_status_update, channel_id, status_update}
+    )
+
+    # Queue database write
+    StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
+
+    {:ok, :processed}
   end
 
   def get_user_channel_status(user_id, channel_id) do
@@ -290,5 +250,23 @@ defmodule Vyre.Channels do
         select: m.id,
         limit: 1
     )
+  end
+
+  def write_channel_status(user_id, channel_id, message_id) do
+    params = %{
+      user_id: user_id,
+      channel_id: channel_id,
+      last_read_at: DateTime.utc_now(),
+      mention_count: 0,
+      last_read_message_id: message_id
+    }
+
+    status =
+      case Repo.get_by(UserChannelStatus, user_id: user_id, channel_id: channel_id) do
+        nil -> %UserChannelStatus{user_id: user_id, channel_id: channel_id}
+        existing -> existing
+      end
+
+    Repo.insert_or_update(UserChannelStatus.changeset(status, params))
   end
 end

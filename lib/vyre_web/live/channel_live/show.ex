@@ -3,6 +3,7 @@ defmodule VyreWeb.ChannelLive.Show do
 
   alias Vyre.Channels
   alias Vyre.Messages
+  alias Vyre.Servers
 
   @impl true
   def mount(%{"id" => channel_id}, _session, socket) do
@@ -31,20 +32,25 @@ defmodule VyreWeb.ChannelLive.Show do
 
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
-    if connected?(socket) do
-      user_id = socket.assigns.current_user.id
+    user_id = socket.assigns.current_user.id
 
-      status = %{has_unread: false, mention_count: 0}
+    IO.puts("\n\nCHANNEL LIVE DEBUG: Opened channel #{id} for user #{user_id}")
+
+    if connected?(socket) do
+      # Execute the mark as read in a separate process to avoid blocking the UI
+      Task.start(fn ->
+        # This will update cache, queue DB update, and broadcast to subscribers
+        Channels.mark_channel_as_read(user_id, id)
+      end)
+
+      # Immediately update the channel status in sidebar
+      status_update = %{has_unread: false, mention_count: 0}
 
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
         "user:#{user_id}:status",
-        {:channel_status_update, id, status}
+        {:channel_status_update, id, status_update}
       )
-
-      Task.start(fn ->
-        Vyre.Channels.mark_channel_as_read(user_id, id)
-      end)
     end
 
     {:noreply, socket}
@@ -63,15 +69,40 @@ defmodule VyreWeb.ChannelLive.Show do
         mentions_everyone: String.contains?(content, "@everyone")
       })
 
-    Channels.mark_channel_as_read(user_id, channel_id)
-
     message_with_user = Messages.get_message_with_user(message.id)
 
+    # Broadcast to channel subscribers
     Phoenix.PubSub.broadcast(
       Vyre.PubSub,
       "channel:#{channel_id}",
       {:new_message, message_with_user}
     )
+
+    # Boadcast unread status to all server members EXCEPT sender
+    Task.start(fn ->
+      channel = Channels.get_channel!(channel_id)
+      server_members = Servers.list_server_members(channel.server_id)
+
+      Enum.each(server_members, fn member ->
+        # Skip the message sender - they don't need an unread indicator
+        unless member.user_id == user_id do
+          IO.puts(
+            "\n\nBROADCAST DEBUG: Sending unread status for channel #{channel_id} to user #{member.user_id}"
+          )
+
+          # Calculate mention count
+          mention_count = if message.mentions_everyone, do: 1, else: 0
+
+          # Broadcast unread status to this member
+          Phoenix.PubSub.broadcast(
+            Vyre.PubSub,
+            "user:#{member.user_id}:status",
+            {:channel_status_update, channel_id,
+             %{has_unread: true, mention_count: mention_count}}
+          )
+        end
+      end)
+    end)
 
     {:noreply,
      socket
@@ -112,10 +143,27 @@ defmodule VyreWeb.ChannelLive.Show do
     # since our own messages are already handled in handle_event
     if message.user_id != socket.assigns.current_user.id do
       message_with_user = Messages.get_message_with_user(message.id)
+
+      # Mark this channel as unread in the cache
       channel_id = message.channel_id
       user_id = socket.assigns.current_user.id
 
-      :ets.delete(:channel_status_cache, "#{user_id}:#{channel_id}")
+      # Only if we're not currently viewing this channel
+      if socket.assigns.channel.id != channel_id do
+        mention_count = if message.mentions_everyone, do: 1, else: 0
+
+        # Cache invalidation - this will force a re-fetch of status
+        :ets.delete(:channel_status_cache, "#{user_id}:#{channel_id}")
+
+        # Update status in cache and broadcast
+        status_update = %{has_unread: true, mention_count: mention_count}
+
+        Phoenix.PubSub.broadcast(
+          Vyre.PubSub,
+          "user:#{user_id}:status",
+          {:channel_status_update, channel_id, status_update}
+        )
+      end
 
       {:noreply,
        socket
