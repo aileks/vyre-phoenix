@@ -49,13 +49,16 @@ if config_env() == :prod do
 
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
-      username: db_user,
+      username: "postgres.jfeyxmnuqhlxadiksygf",
       hostname: "aws-0-us-east-1.pooler.supabase.com",
       password: db_password,
       port: 5432,
       database: "postgres",
       parameters: [search_path: db_schema],
-      ssl: true,
+      ssl: [
+        verify: :verify_peer,
+        cacertfile: "/etc/ssl/certs/prod-ca-2021.crt"
+      ],
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
       socket_options: maybe_ipv6
   end
