@@ -27,26 +27,31 @@ if config_env() == :prod do
         environment variable DB_SCHEMA is missing.
       """
 
+  db_user =
+    System.get_env("DB_USERNAME") ||
+      raise """
+        environment variable DB_USERNAME is missing.
+      """
+
+  db_host =
+    System.get_env("DB_HOSTNAME") ||
+      raise """
+        environment variable DB_HOSTNAME is missing.
+      """
+
   db_password =
     System.get_env("DB_PASSWORD") ||
       raise """
         environment variable DB_PASSWORD is missing.
       """
 
-  # database_url =
-  #   System.get_env("DATABASE_URL") ||
-  #     raise """
-  #     environment variable DATABASE_URL is missing.
-  #     For example: ecto://USER:PASS@HOST/DATABASE
-  #     """
-
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
-      username: "postgres.vzpwrvlccnnhlkxissdi",
+      username: db_user,
+      hostname: db_host,
       password: db_password,
-      hostname: "aws-0-us-east-1.pooler.supabase.com",
       port: 5432,
       database: "postgres",
       parameters: [search_path: db_schema],
