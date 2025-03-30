@@ -55,10 +55,7 @@ if config_env() == :prod do
       port: 5432,
       database: "postgres",
       parameters: [search_path: db_schema],
-      ssl: [
-        verify: :verify_peer,
-        cacertfile: "/etc/ssl/certs/prod-ca-2021.crt"
-      ],
+      ssl: true,
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
       socket_options: maybe_ipv6
   end
