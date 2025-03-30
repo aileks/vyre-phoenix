@@ -27,23 +27,23 @@ if config_env() == :prod do
         environment variable DB_SCHEMA is missing.
       """
 
-  db_user =
-    System.get_env("DB_USER") ||
+  db_password =
+    System.get_env("DB_PASSWORD") ||
       raise """
-        environment variable DB_USER is missing.
+        environment variable DB_PASSWORD is missing.
       """
+
+  #   db_user =
+  #     System.get_env("DB_USER") ||
+  #       raise """
+  #         environment variable DB_USER is missing.
+  #       """
 
   # db_host =
   #   System.get_env("DB_HOST") ||
   #     raise """
   #       environment variable DB_HOST is missing.
   #     """
-
-  db_password =
-    System.get_env("DB_PASSWORD") ||
-      raise """
-        environment variable DB_PASSWORD is missing.
-      """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
