@@ -30,13 +30,13 @@ if config_env() == :prod do
   db_user =
     System.get_env("DB_USER") ||
       raise """
-        environment variable DB_USERNAME is missing.
+        environment variable DB_USER is missing.
       """
 
   db_host =
     System.get_env("DB_HOST") ||
       raise """
-        environment variable DB_HOSTNAME is missing.
+        environment variable DB_HOST is missing.
       """
 
   db_password =
@@ -50,7 +50,7 @@ if config_env() == :prod do
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
       username: db_user,
-      hostname: db_host,
+      hostname: "aws-0-us-east-1.pooler.supabase.com",
       password: db_password,
       port: 5432,
       database: "postgres",
