@@ -36,8 +36,7 @@ if config_env() == :prod do
     config :vyre, Vyre.Repo,
       ssl: [
         verify: :verify_peer,
-        cacerts: :public_key.cacerts_get(),
-        server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
+        cacerts: :public_key.cacerts_get()
       ],
       parameters: [search_path: db_schema],
       migration_default_prefix: db_schema,
