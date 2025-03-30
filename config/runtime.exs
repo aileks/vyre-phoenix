@@ -28,13 +28,13 @@ if config_env() == :prod do
       """
 
   db_user =
-    System.get_env("DB_USERNAME") ||
+    System.get_env("DB_USER") ||
       raise """
         environment variable DB_USERNAME is missing.
       """
 
   db_host =
-    System.get_env("DB_HOSTNAME") ||
+    System.get_env("DB_HOST") ||
       raise """
         environment variable DB_HOSTNAME is missing.
       """
