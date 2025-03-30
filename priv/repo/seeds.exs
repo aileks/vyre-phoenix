@@ -168,14 +168,10 @@ Enum.each(selected_pairs, fn {user1, user2} ->
     # Alternate sender and receiver
     {sender, receiver} = if rem(i, 2) == 0, do: {user1, user2}, else: {user2, user1}
 
-    # Set read status based on position
-    is_read = i <= num_messages - 2
-
     Factory.insert(:private_message,
       sender_id: sender.id,
       receiver_id: receiver.id,
-      content: Faker.Lorem.paragraph(),
-      read: is_read
+      content: Faker.Lorem.paragraph()
     )
   end)
 end)
@@ -368,49 +364,6 @@ conversations =
       participants
     end
   )
-
-Enum.each(conversations, fn {_participant_key, messages} ->
-  # Sort messages by timestamp
-  sorted_messages = Enum.sort_by(messages, & &1.inserted_at)
-
-  # For the last 1-3 messages (if they exist), apply read states
-  message_count = length(sorted_messages)
-
-  if message_count > 0 do
-    # For the most recent messages
-    last_msg_count = min(message_count, 1 + :rand.uniform(2))
-    recent_messages = Enum.take(sorted_messages, -last_msg_count)
-
-    # Pattern of reading
-    read_pattern =
-      Enum.random([
-        # Receiver read all messages
-        :all_read,
-        # Receiver didn't read last message(s)
-        :some_unread,
-        # Receiver hasn't read any recent messages
-        :none_read
-      ])
-
-    recent_messages
-    |> Enum.with_index()
-    |> Enum.each(fn {msg, idx} ->
-      should_be_read =
-        case read_pattern do
-          :all_read -> true
-          :some_unread -> idx < length(recent_messages) - 1
-          :none_read -> false
-        end
-
-      # Only update if actually necessary
-      if msg.read != should_be_read do
-        msg
-        |> Ecto.Changeset.change(%{read: should_be_read})
-        |> Repo.update!()
-      end
-    end)
-  end
-end)
 
 # Add some targeted mentions
 Enum.each(users, fn user ->

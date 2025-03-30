@@ -93,7 +93,6 @@ if Code.ensure_loaded?(ExMachina.Ecto) do
         content: Faker.Lorem.paragraph(),
         sender_id: build(:user).id,
         receiver_id: build(:user).id,
-        read: Enum.random([true, false]),
         inserted_at: Faker.DateTime.backward(Enum.random(1..30)),
         updated_at: Faker.DateTime.between(~N[2024-12-01T00:00:00Z], ~N[2025-03-01T23:59:59Z])
       }

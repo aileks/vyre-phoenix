@@ -7,7 +7,6 @@ defmodule Vyre.Messages.Message do
   @foreign_key_type :binary_id
   schema "messages" do
     field :content, :string
-    field :read, :boolean, default: false
     field :edited, :boolean, default: false
     field :mentions_everyone, :boolean, default: false
 

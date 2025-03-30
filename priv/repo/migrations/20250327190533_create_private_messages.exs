@@ -6,8 +6,8 @@ defmodule Vyre.Repo.Migrations.CreatePrivateMessages do
       add :id, :binary_id, primary_key: true
       add :content, :text
       add :read, :boolean, default: false, null: false
-      add :sender_id, references(:users, on_delete: :delete_all, type: :binary_id)
-      add :receiver_id, references(:users, on_delete: :delete_all, type: :binary_id)
+      add :sender_id, references(:users, on_delete: :delete_all, type: :binary_id), null: false
+      add :receiver_id, references(:users, on_delete: :delete_all, type: :binary_id), null: false
 
       timestamps(type: :utc_datetime)
     end

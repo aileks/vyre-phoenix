@@ -27,8 +27,7 @@ defmodule Vyre.MessagesFixtures do
     {:ok, private_message} =
       attrs
       |> Enum.into(%{
-        content: "some content",
-        read: true
+        content: "some content"
       })
       |> Vyre.Messages.create_private_message()
 
