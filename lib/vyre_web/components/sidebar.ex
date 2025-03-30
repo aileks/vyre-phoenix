@@ -1,8 +1,10 @@
 defmodule VyreWeb.Components.Sidebar do
   use VyreWeb, :live_component
 
-  alias Vyre.Channels
+  import Ecto.Query
   alias Vyre.Repo
+  alias Vyre.Channels
+  alias Vyre.Channels.UserChannelStatus
 
   @impl true
   def mount(socket) do
@@ -17,7 +19,7 @@ defmodule VyreWeb.Components.Sidebar do
       current_user = assigns.current_user
 
       user_with_data =
-        Vyre.Repo.preload(current_user, [
+        Repo.preload(current_user, [
           :sent_messages,
           :received_messages,
           joined_servers: [:channels],
@@ -30,8 +32,7 @@ defmodule VyreWeb.Components.Sidebar do
       socket =
         assign(socket,
           pm_expanded: true,
-          all_servers_expanded: false,
-          server_expanded: %{},
+          all_servers_expanded: true,
           private_messages: private_messages,
           servers: servers
         )
@@ -42,8 +43,7 @@ defmodule VyreWeb.Components.Sidebar do
       {:ok,
        assign(socket,
          pm_expanded: true,
-         all_servers_expanded: false,
-         server_expanded: %{},
+         all_servers_expanded: true,
          private_messages: [],
          servers: []
        )}
@@ -189,46 +189,35 @@ defmodule VyreWeb.Components.Sidebar do
                 >
                   <div class="flex items-center justify-between font-mono text-sm">
                     {server.name}
-
-                    <Heroicons.icon
-                      name={
-                        if Map.get(@server_expanded, server.id, false),
-                          do: "chevron-double-down",
-                          else: "chevron-double-right"
-                      }
-                      class="text-cybertext-500 h-4 w-4"
-                    />
                   </div>
 
-                  <%= if Map.get(@server_expanded, server.id, false) do %>
-                    <div class="mt-1 ml-2 space-y-1">
-                      <%= for channel <- server.channels do %>
-                        <.link
-                          navigate={~p"/app/channels/#{channel.id}"}
-                          class={[
-                            "flex items-center rounded-xs px-3 py-1",
-                            @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
-                              "bg-primary-900 text-primary-300",
-                            @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
-                              "text-cybertext-400 hover:bg-midnight-700"
-                          ]}
-                        >
-                          <span class="text-cybertext-500 mr-1">#</span>
-                          <span>{channel.name}</span>
+                  <div class="mt-1 ml-2 space-y-1">
+                    <%= for channel <- server.channels do %>
+                      <.link
+                        navigate={~p"/app/channels/#{channel.id}"}
+                        class={[
+                          "flex items-center rounded-xs px-3 py-1",
+                          @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
+                            "bg-primary-900 text-primary-300",
+                          @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
+                            "text-cybertext-400 hover:bg-midnight-700"
+                        ]}
+                      >
+                        <span class="text-cybertext-500 mr-1">#</span>
+                        <span>{channel.name}</span>
 
-                          <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
-                            <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
-                          <% end %>
+                        <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
+                          <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
+                        <% end %>
 
-                          <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
-                            <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
-                              {channel.computed.mention_count}
-                            </div>
-                          <% end %>
-                        </.link>
-                      <% end %>
-                    </div>
-                  <% end %>
+                        <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
+                          <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
+                            {channel.computed.mention_count}
+                          </div>
+                        <% end %>
+                      </.link>
+                    <% end %>
+                  </div>
                 </div>
               <% end %>
             </div>
@@ -255,11 +244,15 @@ defmodule VyreWeb.Components.Sidebar do
     """
   end
 
-  def get_channels_with_status_for_user(user_id) do
-    # Get channels the user has access to
-    channels = get_user_channels(user_id)
+  def get_channels_with_status_for_user(user) do
+    # Extract channels from preloaded user data
+    channels =
+      (user.joined_servers ++ user.owned_servers)
+      |> Enum.flat_map(fn server -> server.channels end)
+      |> Enum.uniq_by(fn channel -> channel.id end)
 
     # Get status for all channels in one batch from cache
+    user_id = user.id
     channel_ids = Enum.map(channels, & &1.id)
     statuses = batch_get_channel_statuses(user_id, channel_ids)
 
@@ -285,7 +278,7 @@ defmodule VyreWeb.Components.Sidebar do
       |> Map.new(fn {channel_id, status} ->
         {channel_id,
          %{
-           has_unread: channel_has_unread?(user_id, channel_id, status),
+           has_unread: Channels.channel_has_unread?(user_id, channel_id, status),
            mention_count: status.mention_count || 0
          }}
       end)
@@ -299,9 +292,10 @@ defmodule VyreWeb.Components.Sidebar do
         %{}
       else
         Repo.all(
-          from ucs in UserChannelStatus,
+          from(ucs in UserChannelStatus,
             where: ucs.user_id == ^user_id and ucs.channel_id in ^missing_channel_ids,
             select: {ucs.channel_id, ucs}
+          )
         )
         |> Map.new(fn {channel_id, status} ->
           # Cache the result
@@ -310,7 +304,7 @@ defmodule VyreWeb.Components.Sidebar do
           # Return the computed status values
           {channel_id,
            %{
-             has_unread: channel_has_unread?(user_id, channel_id, status),
+             has_unread: Channels.channel_has_unread?(user_id, channel_id),
              mention_count: status.mention_count || 0
            }}
         end)
@@ -335,7 +329,7 @@ defmodule VyreWeb.Components.Sidebar do
 
       # Get the other user's information
       other_user_id = if msg.sender_id == user.id, do: msg.receiver_id, else: msg.sender_id
-      other_user = Vyre.Repo.get(Vyre.Accounts.User, other_user_id)
+      other_user = Repo.get(Vyre.Accounts.User, other_user_id)
 
       # Add status and username to each private message conversation
       %{
@@ -349,38 +343,6 @@ defmodule VyreWeb.Components.Sidebar do
     end)
   end
 
-  defp get_user_servers(user) do
-    owned = user.owned_servers || []
-    joined = user.joined_servers || []
-
-    user_id = user.id
-
-    servers =
-      (owned ++ joined)
-      |> Enum.uniq_by(fn server -> server.id end)
-      |> Enum.sort_by(fn server -> server.name end)
-      |> Vyre.Repo.preload(:channels)
-
-    Enum.map(servers, fn server ->
-      channels =
-        Enum.map(server.channels, fn channel ->
-          status = Vyre.Channels.get_user_channel_status(user_id, channel.id)
-
-          # Build computed properties based on status
-          has_unread = Vyre.Channels.channel_has_unread?(user_id, channel.id)
-          mention_count = if status, do: status.mention_count, else: 0
-
-          # Add computed properties to each channel
-          Map.put(channel, :computed, %{
-            has_unread: has_unread,
-            mention_count: mention_count
-          })
-        end)
-
-      %{server | channels: channels}
-    end)
-  end
-
   defp get_user_servers_with_status(user) do
     owned = user.owned_servers || []
     joined = user.joined_servers || []
@@ -391,7 +353,7 @@ defmodule VyreWeb.Components.Sidebar do
       (owned ++ joined)
       |> Enum.uniq_by(fn server -> server.id end)
       |> Enum.sort_by(fn server -> server.name end)
-      |> Vyre.Repo.preload(:channels)
+      |> Repo.preload(:channels)
 
     Enum.map(servers, fn server ->
       channels =
@@ -413,40 +375,53 @@ defmodule VyreWeb.Components.Sidebar do
 
   defp get_cached_unread_status(user_id, channel_id) do
     # Try to get from cache first
-    case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:unread") do
-      [{_, value}] ->
-        value
+    try do
+      case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:unread") do
+        [{_, value}] ->
+          value
 
-      [] ->
-        # Cache miss - get from Channels context
-        result = Channels.channel_has_unread?(user_id, channel_id)
-        # Cache the result with 30 second TTL
-        :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:unread", result})
-        # Set a timer to invalidate after 30 seconds
-        Process.send_after(self(), {:invalidate_cache, "#{user_id}:#{channel_id}:unread"}, 30_000)
-        result
+        [] ->
+          # Cache miss - get from Channels context
+          result = Channels.channel_has_unread?(user_id, channel_id)
+          # Try to cache the result (might fail if table doesn't exist)
+          try do
+            :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:unread", result})
+          rescue
+            _ -> :ok
+          end
+
+          result
+      end
+    rescue
+      _ ->
+        # Fall back to direct calculation if cache isn't available
+        Channels.channel_has_unread?(user_id, channel_id)
     end
   end
 
   defp get_cached_mention_count(user_id, channel_id) do
     # Try to get from cache first
-    case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:mentions") do
-      [{_, count}] ->
-        count
+    try do
+      case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}:mentions") do
+        [{_, count}] ->
+          count
 
-      [] ->
-        # Cache miss - get from Channels context
-        count = Channels.get_channel_mention_count(user_id, channel_id)
-        # Cache the result with 30 second TTL
-        :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:mentions", count})
-        # Set a timer to invalidate after 30 seconds
-        Process.send_after(
-          self(),
-          {:invalidate_cache, "#{user_id}:#{channel_id}:mentions"},
-          30_000
-        )
+        [] ->
+          # Cache miss - get from Channels context
+          count = Channels.get_channel_mention_count(user_id, channel_id)
+          # Try to cache the result (might fail if table doesn't exist)
+          try do
+            :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}:mentions", count})
+          rescue
+            _ -> :ok
+          end
 
-        count
+          count
+      end
+    rescue
+      _ ->
+        # Fall back to direct calculation if cache isn't available
+        Channels.get_channel_mention_count(user_id, channel_id)
     end
   end
 
@@ -459,13 +434,6 @@ defmodule VyreWeb.Components.Sidebar do
   @impl true
   def handle_event("toggle_servers", _, socket) do
     {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
-  end
-
-  @impl true
-  def handle_event("toggle_server", %{"id" => server_id}, socket) do
-    current_state = Map.get(socket.assigns.server_expanded, server_id, false)
-    new_state = Map.put(socket.assigns.server_expanded, server_id, !current_state)
-    {:noreply, assign(socket, server_expanded: new_state)}
   end
 
   @impl true

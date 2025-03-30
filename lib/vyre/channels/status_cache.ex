@@ -5,6 +5,15 @@ defmodule Vyre.Channels.StatusCache do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
+  @impl true
+  def init(_) do
+    if :ets.whereis(:channel_status_cache) == :undefined do
+      :ets.new(:channel_status_cache, [:named_table, :set, :public])
+    end
+
+    {:ok, %{}}
+  end
+
   def get_status(user_id, channel_id) do
     # Try cache first, fall back to database
     case :ets.lookup(:channel_status_cache, "#{user_id}:#{channel_id}") do
@@ -45,10 +54,5 @@ defmodule Vyre.Channels.StatusCache do
 
     :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}", updated_status})
     {:ok, updated_status}
-  end
-
-  def init(_) do
-    :ets.new(:channel_status_cache, [:named_table, :set, :public])
-    {:ok, %{}}
   end
 end

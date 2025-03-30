@@ -128,19 +128,29 @@ defmodule VyreWeb.ChannelLive.Show do
 
   @impl true
   def handle_info({:channel_status_update, channel_id, status}, socket) do
-    socket =
-      update_in(socket.assigns.channels, fn channels ->
-        Enum.map(channels, fn channel ->
-          if channel.id == channel_id do
-            put_in(channel.computed.has_unread, status.has_unread)
-            |> put_in([Access.key(:computed), Access.key(:mention_count)], status.mention_count)
-          else
-            channel
-          end
+    # Only try to update channels if the socket has a channels assign
+    if Map.has_key?(socket.assigns, :channels) do
+      socket =
+        update_in(socket.assigns.channels, fn channels ->
+          Enum.map(channels, fn channel ->
+            if channel.id == channel_id do
+              put_in(channel.computed.has_unread, status.has_unread)
+              |> put_in([Access.key(:computed), Access.key(:mention_count)], status.mention_count)
+            else
+              channel
+            end
+          end)
         end)
-      end)
 
-    {:noreply, socket}
+      {:noreply, socket}
+    else
+      if socket.assigns[:channel] && socket.assigns.channel.id == channel_id do
+        socket = assign(socket, current_channel_status: status)
+        {:noreply, socket}
+      else
+        {:noreply, socket}
+      end
+    end
   end
 
   def format_message_date(naive_datetime) do

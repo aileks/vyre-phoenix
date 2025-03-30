@@ -22,7 +22,9 @@ defmodule Vyre.Application do
       # Start a worker by calling: Vyre.Worker.start_link(arg)
       # {Vyre.Worker, arg},
       # Start to serve requests, typically the last entry
-      VyreWeb.Endpoint
+      VyreWeb.Endpoint,
+      {Vyre.Channels.StatusCache, []},
+      {Vyre.Channels.StatusQueue, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
