@@ -6,7 +6,7 @@ defmodule Vyre.Messages.PrivateMessage do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "private_messages" do
-    field :read, :boolean, default: false, null: false
+    field :read, :boolean, default: false
     field :content, :string
 
     belongs_to :sender, Vyre.Accounts.User, foreign_key: :sender_id

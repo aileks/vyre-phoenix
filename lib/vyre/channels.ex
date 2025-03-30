@@ -9,6 +9,8 @@ defmodule Vyre.Channels do
   alias Vyre.Messages.Message
   alias Vyre.Channels.Channel
   alias Vyre.Channels.UserChannelStatus
+  alias Vyre.Channels.StatusCache
+  alias Vyre.Channels.StatusQueue
 
   @doc """
   Returns the list of channels.
@@ -108,42 +110,75 @@ defmodule Vyre.Channels do
   ## USER CHANNEL STATUS FUNCTIONS ##
   ## ----------------------------- ##
 
-  def mark_channel_as_read(user_id, channel_id) do
-    latest_message =
-      Repo.one(
-        from m in Message,
-          where: m.channel_id == ^channel_id,
-          order_by: [desc: m.inserted_at],
-          limit: 1
-      )
-
-    # Prepare the params based on whether there's a latest message
-    params = %{
-      user_id: user_id,
-      channel_id: channel_id,
-      last_read_at: DateTime.utc_now(),
-      mention_count: 0
-    }
-
-    # Add the last_read_message_id only if we have a message
-    params =
-      if latest_message do
-        Map.put(params, :last_read_message_id, latest_message.id)
-      else
-        params
+  def mark_channel_as_read(user_id, channel_id, message_id \\ nil) do
+    # Try getting the status from cache first
+    last_status =
+      case Vyre.Channels.StatusCache.get_status(user_id, channel_id) do
+        {:ok, status} -> status
+        {:error, :not_found} -> nil
       end
 
-    # Update or create the user's channel status
-    case get_user_channel_status(user_id, channel_id) do
-      nil ->
-        %UserChannelStatus{}
-        |> UserChannelStatus.changeset(params)
-        |> Repo.insert()
+    # Decide if we should perform a full update or just cache
+    should_update =
+      cond do
+        # No previous status - always update
+        is_nil(last_status) ->
+          true
 
-      status ->
-        status
-        |> UserChannelStatus.changeset(params)
-        |> Repo.update()
+        # Last update was more than 1 minute ago
+        DateTime.diff(DateTime.utc_now(), last_status.updated_at) > 60 ->
+          true
+
+        !is_nil(message_id) && !is_nil(last_status.last_read_message_id) ->
+          newer_message = Repo.get(Message, message_id)
+          older_message = Repo.get(Message, last_status.last_read_message_id)
+
+          if newer_message && older_message do
+            time_diff = DateTime.diff(newer_message.inserted_at, older_message.inserted_at)
+            time_diff > 300
+          else
+            true
+          end
+
+        # Otherwise, skip the full update
+        true ->
+          false
+      end
+
+    current_message_id = message_id || get_latest_message_id(channel_id)
+
+    if should_update do
+      params = %{
+        user_id: user_id,
+        channel_id: channel_id,
+        last_read_at: DateTime.utc_now(),
+        mention_count: 0,
+        last_read_message_id: current_message_id
+      }
+
+      StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
+      StatusCache.update_status(user_id, channel_id, params)
+
+      {:ok, :queued_for_update}
+    else
+      if last_status do
+        cache_params = %{
+          user_id: user_id,
+          channel_id: channel_id,
+          last_read_at: DateTime.utc_now(),
+          mention_count: last_status.mention_count,
+          last_read_message_id: current_message_id || last_status.last_read_message_id
+        }
+
+        # Update in cache only
+        StatusCache.update_status(user_id, channel_id, cache_params)
+        {:ok, :cache_updated}
+      else
+        # This is unusual but possible if cache was invalidated
+        # Fall back to queue to ensure data integrity
+        StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
+        {:ok, :fallback_queued}
+      end
     end
   end
 
@@ -212,5 +247,16 @@ defmodule Vyre.Channels do
           :count
         )
     end
+  end
+
+  # Helper to get latest message ID in a channel
+  defp get_latest_message_id(channel_id) do
+    Repo.one(
+      from m in Message,
+        where: m.channel_id == ^channel_id,
+        order_by: [desc: m.inserted_at],
+        select: m.id,
+        limit: 1
+    )
   end
 end
