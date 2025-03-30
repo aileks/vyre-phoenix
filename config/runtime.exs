@@ -21,6 +21,8 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  db_schema = System.get_env("DB_SCHEMA") || raise "environment variable DB_SCHEMA is missing"
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
@@ -34,11 +36,16 @@ if config_env() == :prod do
     config :vyre, Vyre.Repo,
       ssl: [
         verify: :verify_peer,
-        cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
+        cacerts: :public_key.cacerts_get(),
         server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
       ],
+      parameters: [search_path: db_schema],
+      migration_default_prefix: db_schema,
+      migration_source: "#{db_schema}_schema_migrations",
       url: database_url,
-      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+      queue_target: 5000,
+      queue_interval: 5000,
       socket_options: maybe_ipv6
   end
 
