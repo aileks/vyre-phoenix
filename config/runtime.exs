@@ -33,11 +33,11 @@ if config_env() == :prod do
         environment variable DB_USER is missing.
       """
 
-  db_host =
-    System.get_env("DB_HOST") ||
-      raise """
-        environment variable DB_HOST is missing.
-      """
+  # db_host =
+  #   System.get_env("DB_HOST") ||
+  #     raise """
+  #       environment variable DB_HOST is missing.
+  #     """
 
   db_password =
     System.get_env("DB_PASSWORD") ||
