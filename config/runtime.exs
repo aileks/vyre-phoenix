@@ -75,7 +75,7 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = "https://vyre-nmqsj.ondigitalocean.app/"
+  host = "vyre-nmqsj.ondigitalocean.app"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :vyre, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
