@@ -3,16 +3,6 @@ defmodule VyreWeb.AppLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) && socket.assigns[:current_user] do
-      try do
-        IO.puts("AppLive: Loading sidebar data for user #{socket.assigns.current_user.id}")
-        VyreWeb.SidebarState.load_for_user(socket.assigns.current_user)
-      rescue
-        e ->
-          IO.puts("Error loading sidebar data: #{inspect(e)}")
-      end
-    end
-
     socket =
       assign(socket,
         page_title: "Vyre Chat",
@@ -21,6 +11,12 @@ defmodule VyreWeb.AppLive do
         show_settings: false,
         show_commands: false
       )
+
+    # Only try to load sidebar state if we're connected and have a user
+    if connected?(socket) && socket.assigns[:current_user] do
+      VyreWeb.SidebarState.load_for_user(socket.assigns.current_user)
+      send_update(VyreWeb.Components.Sidebar, id: "sidebar")
+    end
 
     {:ok, socket}
   end
@@ -120,6 +116,11 @@ defmodule VyreWeb.AppLive do
   @impl true
   def handle_info({:channel_status_update, channel_id, status}, socket) do
     VyreWeb.SidebarState.update_channel_status(channel_id, status)
+    {:noreply, socket}
+  end
+
+  def handle_info({:trigger_sidebar_refresh}, socket) do
+    send_update(VyreWeb.Components.Sidebar, id: "sidebar")
     {:noreply, socket}
   end
 end

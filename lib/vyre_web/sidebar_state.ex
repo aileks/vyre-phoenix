@@ -4,12 +4,8 @@ defmodule VyreWeb.SidebarState do
   @registry_name :sidebar_state
 
   def start_link(_) do
-    IO.puts("SidebarState: Starting agent...")
-
     Agent.start_link(
       fn ->
-        IO.puts("SidebarState: Initializing with empty state")
-
         %{
           pm_expanded: true,
           all_servers_expanded: true,
@@ -22,34 +18,25 @@ defmodule VyreWeb.SidebarState do
   end
 
   def get_state do
-    state = Agent.get(@registry_name, & &1)
-    server_count = length(state[:servers] || [])
-    message_count = length(state[:private_messages] || [])
-
-    IO.puts(
-      "SidebarState: Retrieved state with #{server_count} servers and #{message_count} messages"
-    )
-
-    state
+    Agent.get(@registry_name, & &1)
   end
 
   def load_for_user(user) do
-    IO.puts("SidebarState: Loading data for user #{user.id}...")
-
     try do
       user_with_data =
-        Vyre.Repo.preload(user, [
-          :sent_messages,
-          :received_messages,
-          joined_servers: [:channels],
-          owned_servers: [:channels]
-        ])
+        Vyre.Repo.preload(
+          user,
+          [
+            :sent_messages,
+            :received_messages,
+            joined_servers: [channels: [], owner: []],
+            owned_servers: [channels: [], owner: []]
+          ]
+        )
 
       private_messages = get_user_private_messages(user_with_data)
-      IO.puts("SidebarState: Found #{length(private_messages)} private messages")
 
       servers = get_user_servers_with_status(user_with_data)
-      IO.puts("SidebarState: Found #{length(servers)} servers")
 
       # Update the state with the loaded data
       update_state(fn _ ->
@@ -61,11 +48,11 @@ defmodule VyreWeb.SidebarState do
         }
       end)
 
-      IO.puts("SidebarState: State updated successfully")
+      # Return the new state for immediate use
+      {:ok, get_state()}
     rescue
       e ->
-        IO.puts("ERROR in SidebarState.load_for_user: #{inspect(e)}")
-        IO.puts("#{Exception.format_stacktrace()}")
+        {:error, e}
     end
   end
 
@@ -132,10 +119,6 @@ defmodule VyreWeb.SidebarState do
 
       user_id = user.id
 
-      IO.puts(
-        "Getting servers for user #{user_id}: #{length(owned)} owned, #{length(joined)} joined"
-      )
-
       servers =
         (owned ++ joined)
         |> Enum.uniq_by(fn server -> server.id end)
@@ -169,8 +152,7 @@ defmodule VyreWeb.SidebarState do
         %{server | channels: channels}
       end)
     rescue
-      e ->
-        IO.puts("ERROR in get_user_servers_with_status: #{inspect(e)}")
+      _error ->
         []
     end
   end

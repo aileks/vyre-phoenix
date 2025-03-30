@@ -8,7 +8,8 @@ defmodule VyreWeb.Components.Sidebar do
        pm_expanded: true,
        all_servers_expanded: true,
        private_messages: [],
-       servers: []
+       servers: [],
+       state_loaded: false
      )}
   end
 
@@ -16,28 +17,37 @@ defmodule VyreWeb.Components.Sidebar do
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
+    # Only proceed if we have a user and are connected
     if socket.assigns[:current_user] && connected?(socket) do
       state = VyreWeb.SidebarState.get_state()
-
-      user_id = socket.assigns.current_user.id
-
-      if !socket.assigns[:status_subscribed] do
-        Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
-        socket = assign(socket, status_subscribed: true)
-      end
+      servers_list = state.servers || []
+      pm_list = state.private_messages || []
 
       socket =
-        assign(
-          socket,
-          Map.take(state, [:pm_expanded, :all_servers_expanded, :private_messages, :servers])
-        )
-    end
+        socket
+        |> assign(:servers, servers_list)
+        |> assign(:private_messages, pm_list)
+        |> assign(:pm_expanded, state.pm_expanded)
+        |> assign(:all_servers_expanded, state.all_servers_expanded)
+        |> assign(:state_loaded, true)
 
-    {:ok, socket}
+      # Subscribe to updates if needed
+      socket =
+        if !socket.assigns[:status_subscribed] do
+          user_id = socket.assigns.current_user.id
+          Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
+          assign(socket, :status_subscribed, true)
+        else
+          socket
+        end
+
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
   end
 
   # Event Handlers
-
   @impl true
   def handle_event("toggle_pm", _, socket) do
     # Update the shared state
@@ -51,12 +61,10 @@ defmodule VyreWeb.Components.Sidebar do
 
   @impl true
   def handle_event("toggle_servers", _, socket) do
-    # Update the shared state
     VyreWeb.SidebarState.update_state(fn state ->
       %{state | all_servers_expanded: !state.all_servers_expanded}
     end)
 
-    # Update local state
     {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
   end
 
@@ -83,22 +91,35 @@ defmodule VyreWeb.Components.Sidebar do
 
   @impl true
   def handle_event("open_commands", _, socket) do
-    # Send a message to the parent LiveView
     send(self(), {:open_commands})
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("open_settings", _, socket) do
-    # Send a message to the parent LiveView
     send(self(), {:open_settings})
     {:noreply, socket}
   end
 
-  # Handle PubSub messages
+  def handle_info(:refresh_sidebar_state, socket) do
+    if socket.assigns[:current_user] do
+      state = VyreWeb.SidebarState.get_state()
+
+      socket =
+        socket
+        |> assign(:servers, state.servers)
+        |> assign(:private_messages, state.private_messages)
+        |> assign(:pm_expanded, state.pm_expanded)
+        |> assign(:all_servers_expanded, state.all_servers_expanded)
+        |> assign(:state_loaded, true)
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_info({:channel_status_update, channel_id, status}, socket) do
-    # Update the servers with the new status information
     updated_servers =
       Enum.map(socket.assigns.servers, fn server ->
         updated_channels =
@@ -125,21 +146,6 @@ defmodule VyreWeb.Components.Sidebar do
     {:noreply, assign(socket, servers: updated_servers)}
   end
 
-  # Handle "refresh" message from the hook
-  def handle_info(:refresh_sidebar_state, socket) do
-    if socket.assigns[:current_user] do
-      state = VyreWeb.SidebarState.get_state()
-
-      {:noreply,
-       assign(
-         socket,
-         Map.take(state, [:pm_expanded, :all_servers_expanded, :private_messages, :servers])
-       )}
-    else
-      {:noreply, socket}
-    end
-  end
-
   # Forward any other messages to prevent crashes
   def handle_info(_, socket) do
     {:noreply, socket}
@@ -149,7 +155,8 @@ defmodule VyreWeb.Components.Sidebar do
   def render(assigns) do
     ~H"""
     <div class="bg-midnight-900 flex h-full w-64 flex-col border-r border-gray-700">
-      <!-- Header with user info -->
+      
+    <!-- Header with user info -->
       <div class="border-b border-gray-700 p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center">

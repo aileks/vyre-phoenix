@@ -65,7 +65,7 @@ defmodule VyreWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :app,
-      on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}],
+      on_mount: [{VyreWeb.UserAuth, :ensure_authenticated}, VyreWeb.SidebarHook],
       layout: {VyreWeb.Layouts, :app} do
       live "/", AppLive, :index
       live "/friends", AppLive, :friends
