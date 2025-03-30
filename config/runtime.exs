@@ -35,10 +35,10 @@ if config_env() == :prod do
       ssl: [
         verify: :verify_peer,
         cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
-        server_name_indication: "aws-0-us-east-1.pooler.supabase.com"
+        server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
       ],
       url: database_url,
-      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
       socket_options: maybe_ipv6
   end
 
