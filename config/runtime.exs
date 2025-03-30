@@ -21,23 +21,35 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
+  db_schema =
+    System.get_env("DATABASE_SCHEMA") ||
       raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
+        environment variable DATABASE_SCHEMA is missing.
+        For example: prod
       """
+
+  # database_url =
+  #   System.get_env("DATABASE_URL") ||
+  #     raise """
+  #     environment variable DATABASE_URL is missing.
+  #     For example: ecto://USER:PASS@HOST/DATABASE
+  #     """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
+      username: "postgres.vzpwrvlccnnhlkxissdi",
+      password: System.get_env("DB_PASSWORD"),
+      hostname: "aws-0-us-east-1.pooler.supabase.com",
+      port: 5432,
+      database: "postgres",
+      parameters: [search_path: db_schema],
       ssl: [
         verify: :verify_peer,
         cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
         server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
       ],
-      url: database_url,
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
       socket_options: maybe_ipv6
   end
