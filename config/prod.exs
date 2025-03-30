@@ -19,6 +19,7 @@ config :vyre, VyreWeb.Endpoint, cache_static_manifest: "priv/static/cache_manife
 config :vyre, Vyre.Repo,
   parameters: [search_path: db_schema],
   migration_default_prefix: db_schema,
+  migration_source: "#{db_schema}_schema_migrations",
   url: database_url,
   ssl: [
     verify: :verify_peer,

@@ -5,6 +5,7 @@ ARG MIX_ENV
 ARG SECRET_KEY_BASE
 ARG DATABASE_URL
 ARG DB_SCHEMA
+ARG ECTO_IPV6
 
 RUN mix local.hex --force && mix local.rebar --force
 RUN apk add --no-cache build-base git openssl ncurses-libs postgresql-dev postgresql-client libstdc++ ca-certificates curl
@@ -34,6 +35,8 @@ ARG MIX_ENV
 ARG SECRET_KEY_BASE
 ARG DATABASE_URL
 ARG DB_SCHEMA
+ARG ECTO_IPV6
+ARG PHX_SERVER
 
 RUN apk add --no-cache libstdc++ ncurses-libs openssl bash ca-certificates curl
 
