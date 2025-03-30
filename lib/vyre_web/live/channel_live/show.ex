@@ -33,22 +33,31 @@ defmodule VyreWeb.ChannelLive.Show do
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
     user_id = socket.assigns.current_user.id
+    channel_id = id
 
     if connected?(socket) do
-      # Execute the mark as read in a separate process to avoid blocking the UI
-      Task.start(fn ->
-        # This will update cache, queue DB update, and broadcast to subscribers
-        Channels.mark_channel_as_read(user_id, id)
-      end)
+      status_params = %{
+        user_id: user_id,
+        channel_id: channel_id,
+        last_read_at: DateTime.utc_now(),
+        mention_count: 0,
+        # Will be filled by the task
+        last_read_message_id: nil
+      }
 
-      # Immediately update the channel status in sidebar
+      Vyre.Channels.StatusCache.update_status(user_id, channel_id, status_params)
+
       status_update = %{has_unread: false, mention_count: 0}
 
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
         "user:#{user_id}:status",
-        {:channel_status_update, id, status_update}
+        {:channel_status_update, channel_id, status_update}
       )
+
+      Task.start(fn ->
+        Channels.mark_channel_as_read(user_id, channel_id)
+      end)
     end
 
     {:noreply, socket}
@@ -137,7 +146,6 @@ defmodule VyreWeb.ChannelLive.Show do
     if message.user_id != socket.assigns.current_user.id do
       message_with_user = Messages.get_message_with_user(message.id)
 
-      # Mark this channel as unread in the cache
       channel_id = message.channel_id
       user_id = socket.assigns.current_user.id
 
@@ -154,7 +162,7 @@ defmodule VyreWeb.ChannelLive.Show do
         Phoenix.PubSub.broadcast(
           Vyre.PubSub,
           "user:#{user_id}:status",
-          {:channel_status_update, channel_id, status_update}
+          {:channel_status_update, user_id, channel_id, status_update}
         )
       end
 
@@ -168,9 +176,14 @@ defmodule VyreWeb.ChannelLive.Show do
   end
 
   @impl true
-  def handle_info({:channel_status_update, channel_id, status}, socket) do
-    VyreWeb.SidebarState.update_channel_status(channel_id, status)
-    {:noreply, socket}
+  def handle_info({:channel_status_update, user_id, channel_id, status}, socket) do
+    if socket.assigns.current_user.id == user_id do
+      VyreWeb.SidebarState.update_channel_status(user_id, channel_id, status)
+      updated_servers = VyreWeb.SidebarState.get_state(user_id).servers
+      {:noreply, assign(socket, servers: updated_servers)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def format_message_date(naive_datetime) do

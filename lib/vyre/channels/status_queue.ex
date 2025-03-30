@@ -17,11 +17,8 @@ defmodule Vyre.Channels.StatusQueue do
   def mark_as_read(user_id, channel_id, message_id) do
     key = "#{user_id}:#{channel_id}"
 
-    # Only queue if not processed recently
-    if !recently_processed?(key) do
-      GenServer.cast(__MODULE__, {:mark_read, user_id, channel_id, message_id})
-      mark_as_processed(key)
-    end
+    GenServer.cast(__MODULE__, {:mark_read, user_id, channel_id, message_id})
+    mark_as_processed(key)
   end
 
   # Add update to queue
@@ -75,16 +72,16 @@ defmodule Vyre.Channels.StatusQueue do
     {:noreply, %{new_state | timer: timer}}
   end
 
-  defp recently_processed?(key) do
-    case :ets.lookup(:status_update_throttle, key) do
-      [{^key, timestamp}] ->
-        # Check if processed within the last 5 seconds
-        DateTime.diff(DateTime.utc_now(), timestamp) < 5
+  # defp recently_processed?(key) do
+  #   case :ets.lookup(:status_update_throttle, key) do
+  #     [{^key, timestamp}] ->
+  #       # Check if processed within the last 5 seconds
+  #       DateTime.diff(DateTime.utc_now(), timestamp) < 5
 
-      [] ->
-        false
-    end
-  end
+  #     [] ->
+  #       false
+  #   end
+  # end
 
   defp mark_as_processed(key) do
     :ets.insert(:status_update_throttle, {key, DateTime.utc_now()})

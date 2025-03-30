@@ -114,7 +114,6 @@ defmodule Vyre.Channels do
   def mark_channel_as_read(user_id, channel_id, message_id \\ nil) do
     current_message_id = message_id || get_latest_message_id(channel_id)
 
-    # Create params for the update
     params = %{
       user_id: user_id,
       channel_id: channel_id,
@@ -123,19 +122,16 @@ defmodule Vyre.Channels do
       last_read_message_id: current_message_id
     }
 
-    # Update cache immediately
     {:ok, _} = StatusCache.update_status(user_id, channel_id, params)
 
-    # Broadcast change to all clients for this user
     status_update = %{has_unread: false, mention_count: 0}
 
     Phoenix.PubSub.broadcast(
       Vyre.PubSub,
       "user:#{user_id}:status",
-      {:channel_status_update, channel_id, status_update}
+      {:channel_status_update, user_id, channel_id, status_update}
     )
 
-    # Queue database write
     StatusQueue.mark_as_read(user_id, channel_id, current_message_id)
 
     {:ok, :processed}

@@ -6,19 +6,29 @@ defmodule VyreWeb.SidebarState do
   def start_link(_) do
     Agent.start_link(
       fn ->
-        %{
-          pm_expanded: true,
-          all_servers_expanded: true,
-          private_messages: [],
-          servers: []
-        }
+        %{}
       end,
       name: @registry_name
     )
   end
 
-  def get_state do
-    Agent.get(@registry_name, & &1)
+  def default_state do
+    %{
+      pm_expanded: true,
+      all_servers_expanded: true,
+      private_messages: [],
+      servers: []
+    }
+  end
+
+  def get_state(user_id \\ nil) do
+    if user_id do
+      Agent.get(@registry_name, fn state ->
+        Map.get(state, user_id, default_state())
+      end)
+    else
+      default_state()
+    end
   end
 
   def load_for_user(user) do
@@ -35,11 +45,10 @@ defmodule VyreWeb.SidebarState do
         )
 
       private_messages = get_user_private_messages(user_with_data)
-
       servers = get_user_servers_with_status(user_with_data)
+      user_id = user.id
 
-      # Update the state with the loaded data
-      update_state(fn _ ->
+      update_state(user_id, fn _ ->
         %{
           pm_expanded: true,
           all_servers_expanded: true,
@@ -48,20 +57,27 @@ defmodule VyreWeb.SidebarState do
         }
       end)
 
-      # Return the new state for immediate use
-      {:ok, get_state()}
+      {:ok, get_state(user_id)}
     rescue
-      e ->
-        {:error, e}
+      e -> {:error, e}
     end
   end
 
+  def update_state(user_id, update_fn) when is_function(update_fn, 1) do
+    Agent.update(@registry_name, fn state ->
+      user_state = Map.get(state, user_id, default_state())
+      updated_user_state = update_fn.(user_state)
+      Map.put(state, user_id, updated_user_state)
+    end)
+  end
+
   def update_state(update_fn) when is_function(update_fn, 1) do
+    IO.warn("Update_state called without user_id - this is deprecated")
     Agent.update(@registry_name, update_fn)
   end
 
-  def update_channel_status(channel_id, status) do
-    update_state(fn state ->
+  def update_channel_status(user_id, channel_id, status) do
+    update_state(user_id, fn state ->
       updated_servers =
         Enum.map(state.servers, fn server ->
           updated_channels =

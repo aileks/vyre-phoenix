@@ -1,5 +1,4 @@
 defmodule VyreWeb.SidebarHook do
-  import Phoenix.Component
   import Phoenix.LiveView
 
   def on_mount(:default, _params, _session, socket) do
@@ -15,13 +14,17 @@ defmodule VyreWeb.SidebarHook do
   end
 
   # Handle channel status updates in any LiveView
-  def handle_status_update({:channel_status_update, channel_id, status}, socket) do
-    VyreWeb.SidebarState.update_channel_status(channel_id, status)
+  def handle_status_update({:channel_status_update, user_id, channel_id, status}, socket) do
+    if user_id == socket.assigns.current_user.id do
+      VyreWeb.SidebarState.update_channel_status(user_id, channel_id, status)
 
-    # Tell all sidebar components to refresh
-    send_update(VyreWeb.Components.Sidebar, id: "sidebar", status_update: {channel_id, status})
+      # Tell all sidebar components to refresh
+      send_update(VyreWeb.Components.Sidebar, id: "sidebar", status_update: {channel_id, status})
 
-    {:cont, socket}
+      {:cont, socket}
+    else
+      {:cont, socket}
+    end
   end
 
   # Pass through other messages

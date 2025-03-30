@@ -119,31 +119,33 @@ defmodule VyreWeb.Components.Sidebar do
     end
   end
 
-  def handle_info({:channel_status_update, channel_id, status}, socket) do
-    updated_servers =
-      Enum.map(socket.assigns.servers, fn server ->
-        updated_channels =
-          Enum.map(server.channels, fn channel ->
-            if channel.id == channel_id do
-              # Merge the computed status
-              current_computed = channel.computed || %{}
-              updated_computed = Map.merge(current_computed, status)
-              %{channel | computed: updated_computed}
-            else
-              channel
-            end
-          end)
+  def handle_info({:channel_status_update, user_id, channel_id, status}, socket) do
+    # Only process updates for the current user
+    if socket.assigns.current_user.id == user_id do
+      updated_servers =
+        Enum.map(socket.assigns.servers, fn server ->
+          updated_channels =
+            Enum.map(server.channels, fn channel ->
+              if channel.id == channel_id do
+                current_computed = channel.computed || %{}
+                updated_computed = Map.merge(current_computed, status)
+                %{channel | computed: updated_computed}
+              else
+                channel
+              end
+            end)
 
-        %{server | channels: updated_channels}
+          %{server | channels: updated_channels}
+        end)
+
+      VyreWeb.SidebarState.update_state(user_id, fn state ->
+        %{state | servers: updated_servers}
       end)
 
-    # Update the shared state
-    VyreWeb.SidebarState.update_state(fn state ->
-      %{state | servers: updated_servers}
-    end)
-
-    # Update local state
-    {:noreply, assign(socket, servers: updated_servers)}
+      {:noreply, assign(socket, servers: updated_servers)}
+    else
+      {:noreply, socket}
+    end
   end
 
   # Forward any other messages to prevent crashes
@@ -298,24 +300,17 @@ defmodule VyreWeb.Components.Sidebar do
                       <.link
                         navigate={~p"/app/channels/#{channel.id}"}
                         class={[
-                          "flex items-center rounded-xs px-3 py-1",
+                          "flex items-center justify-between rounded-xs p-1",
                           @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
                             "bg-primary-900 text-primary-300",
                           @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
                             "text-cybertext-400 hover:bg-midnight-700"
                         ]}
                       >
-                        <span class="text-cybertext-500 mr-1">#</span>
-                        <span>{channel.name}</span>
+                        <div><span class="text-electric-100">#</span> {channel.name}</div>
 
                         <%= if Map.get(channel, :computed) && channel.computed.has_unread do %>
-                          <div class="bg-warning-300 ml-2 h-2 w-2 rounded-full"></div>
-                        <% end %>
-
-                        <%= if Map.get(channel, :computed) && channel.computed.mention_count > 0 do %>
-                          <div class="bg-error-500 text-error-200 font-semibold ml-auto rounded-full px-[4px] text-center text-xs">
-                            {channel.computed.mention_count}
-                          </div>
+                          <div class="bg-warning-300 mr-2 h-2 w-2 rounded-full"></div>
                         <% end %>
                       </.link>
                     <% end %>

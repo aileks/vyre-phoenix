@@ -114,9 +114,13 @@ defmodule VyreWeb.AppLive do
   end
 
   @impl true
-  def handle_info({:channel_status_update, channel_id, status}, socket) do
-    VyreWeb.SidebarState.update_channel_status(channel_id, status)
-    {:noreply, socket}
+  def handle_info({:channel_status_update, user_id, channel_id, status}, socket) do
+    if socket.assigns.current_user.id == user_id do
+      VyreWeb.SidebarState.update_channel_status(user_id, channel_id, status)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_info({:trigger_sidebar_refresh}, socket) do
