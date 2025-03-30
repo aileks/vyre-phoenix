@@ -2,8 +2,10 @@
 FROM elixir:1.18-alpine AS builder
 
 ARG MIX_ENV
+ARG SECRET_KEY_BASE
 ARG DB_SCHEMA
 ARG DB_PASSWORD
+ARG PHX_SERVER
 
 RUN mix local.hex --force && mix local.rebar --force
 RUN apk add --no-cache build-base git openssl ncurses-libs postgresql-dev postgresql-client libstdc++ ca-certificates curl
