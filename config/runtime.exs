@@ -45,7 +45,7 @@ if config_env() == :prod do
         environment variable DB_HOST is missing.
       """
 
-  maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
+  # maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   if System.get_env("MIX_ENV") == "prod" do
     config :vyre, Vyre.Repo,
@@ -60,7 +60,6 @@ if config_env() == :prod do
         cacertfile: "/etc/ssl/certs/prod-ca-2021.crt"
       ],
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
-      socket_options: maybe_ipv6,
       pool_mode: :session
   end
 
