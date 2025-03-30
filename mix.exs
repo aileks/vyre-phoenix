@@ -18,7 +18,7 @@ defmodule Vyre.MixProject do
   def application do
     [
       mod: {Vyre.Application, []},
-      extra_applications: [:logger, :runtime_tools, :faker]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
