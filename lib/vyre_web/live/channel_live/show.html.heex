@@ -24,6 +24,7 @@
     class="flex-1 overflow-y-auto p-4 space-y-4 bg-midnight-700"
     id="messages-list"
     phx-update="stream"
+    phx-hook="AutoScroll"
   >
     <%= if not @has_messages do %>
       <div class="text-center py-8">
@@ -45,7 +46,7 @@
                 <span class="chat-display-name">{message.user.username}</span>
 
                 <span class="chat-timestamp">
-                  {Calendar.strftime(message.inserted_at, "%H:%M")}
+                  {format_message_date(message.inserted_at)}
                 </span>
 
                 <%= if message.edited do %>
@@ -64,14 +65,20 @@
   </div>
 
   <div class="bg-midnight-800 border-t border-gray-700 p-4">
-    <.form for={@message_form} phx-submit="send_message" class="flex items-center">
+    <.form
+      id="message-form"
+      for={@message_form}
+      phx-submit="send_message"
+      phx-hook="ClearAndFocus"
+      class="flex items-center"
+    >
       <div class="relative flex-1">
         <input
+          id="message-input"
           type="text"
           name="content"
           placeholder={"Message ##{@channel.name}"}
-          value={@message_form[:content].value}
-          class="bg-midnight-700 w-full rounded-xs border border-gray-700 px-4 py-2 focus:border-primary-500 focus:outline-none"
+          class="bg-midnight-700 w-full rounded-xs border border-midnight-100 px-4 py-2"
           autocomplete="off"
         />
       </div>

@@ -126,10 +126,10 @@ defmodule VyreWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 animate-scale-in duration-200 ease-in-out font-mono sm:w-96 z-50 rounded-xs p-3 ring-1",
-        @kind == :info && "bg-success-300 text-success-800 ring-success-500 fill-success-900",
+        "fixed top-2 right-2 mr-2 w-80 animate-scale-in duration-200 ease-in-out sm:w-96 z-50 rounded-xs p-3 ring-1",
+        @kind == :info && "bg-success-100 text-success-800 ring-success-500 fill-success-900",
         @kind == :error &&
-          "bg-error-300 text-error-800 shadow-md ring-error-500 fill-error-900"
+          "bg-error-100 text-error-800 shadow-md ring-error-500 fill-error-900"
       ]}
       {@rest}
     >
@@ -165,7 +165,7 @@ defmodule VyreWeb.CoreComponents do
   def flash_group(assigns) do
     ~H"""
     <div id={@id}>
-      <.flash kind={:info} title={gettext("Success!")} flash={@flash} />
+      <.flash kind={:info} title={gettext("Success")} flash={@flash} />
       <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
 
       <.flash
@@ -177,7 +177,7 @@ defmodule VyreWeb.CoreComponents do
         hidden
       >
         {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
+        <Heroicons.icon name="arrow-path" class="ml-1 h-3 w-3 animate-spin" />
       </.flash>
 
       <.flash
@@ -189,7 +189,7 @@ defmodule VyreWeb.CoreComponents do
         hidden
       >
         {gettext("Hang in there while we get back on track")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
+        <Heroicons.icon name="arrow-path" class="ml-1 h-3 w-3 animate-spin" />
       </.flash>
     </div>
     """

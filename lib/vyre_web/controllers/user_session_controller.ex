@@ -10,7 +10,7 @@ defmodule VyreWeb.UserSessionController do
 
   def create(conn, %{"_action" => "password_updated"} = params) do
     conn
-    |> put_session(:user_return_to, ~p"/users/settings")
+    |> put_session(:user_return_to, ~p"/app")
     |> create(params, "Password updated successfully!")
   end
 
@@ -24,6 +24,7 @@ defmodule VyreWeb.UserSessionController do
     if user = Accounts.get_user_by_email_and_password(email, password) do
       conn
       |> put_flash(:info, info)
+      |> put_session(:user_return_to, ~p"/app")
       |> UserAuth.log_in_user(user, user_params)
     else
       # In order to prevent user enumeration attacks, don't disclose whether the email is registered.

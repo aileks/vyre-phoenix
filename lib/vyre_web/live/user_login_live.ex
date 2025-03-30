@@ -59,8 +59,6 @@ defmodule VyreWeb.UserLoginLive do
           </.link>
         </div>
       </div>
-
-      <.flash_group flash={@flash} />
     </div>
     """
   end

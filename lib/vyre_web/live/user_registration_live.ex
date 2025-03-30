@@ -77,8 +77,6 @@ defmodule VyreWeb.UserRegistrationLive do
           </.link>
         </div>
       </div>
-
-      <.flash_group flash={@flash} />
     </div>
     """
   end

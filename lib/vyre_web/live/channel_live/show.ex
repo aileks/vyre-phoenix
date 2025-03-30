@@ -59,6 +59,7 @@ defmodule VyreWeb.ChannelLive.Show do
      socket
      |> assign(:has_messages, true)
      |> assign(:message_form, to_form(%{"content" => ""}))
+     |> push_event("clear_input", %{})
      |> stream_insert(:messages, message_with_user)}
   end
 
@@ -76,5 +77,33 @@ defmodule VyreWeb.ChannelLive.Show do
     else
       {:noreply, socket}
     end
+  end
+
+  def format_message_date(naive_datetime) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.to_date()
+    message_date = NaiveDateTime.to_date(naive_datetime)
+    formatted_time = format_time(NaiveDateTime.to_time(naive_datetime))
+
+    cond do
+      message_date == now ->
+        formatted_time
+
+      message_date == Date.add(now, -1) ->
+        "Yesterday at #{formatted_time}"
+
+      true ->
+        formatted_date = format_date(message_date)
+        "#{formatted_date}, #{formatted_time}"
+    end
+  end
+
+  defp format_time(%Time{hour: hour, minute: minute}) do
+    period = if hour >= 12, do: "PM", else: "AM"
+    formatted_hour = if hour > 12, do: hour - 12, else: if(hour == 0, do: 12, else: hour)
+    "#{formatted_hour}:#{String.pad_leading("#{minute}", 2, "0")} #{period}"
+  end
+
+  defp format_date(%Date{year: year, month: month, day: day}) do
+    "#{String.pad_leading("#{month}", 2, "0")}/#{String.pad_leading("#{day}", 2, "0")}/#{year}"
   end
 end

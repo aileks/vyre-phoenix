@@ -34,7 +34,7 @@ defmodule VyreWeb.AppLive do
           <% :channels -> %>
             <p>Channel {@channel_id} goes here</p>
           <% _ -> %>
-            <p class="text-xl">Welcome to Vycera</p>
+            <p class="text-xl">Welcome to Vyre</p>
         <% end %>
       </div>
 
