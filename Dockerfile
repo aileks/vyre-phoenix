@@ -2,10 +2,8 @@
 FROM elixir:1.18-alpine AS builder
 
 ARG MIX_ENV
-ARG SECRET_KEY_BASE
-ARG DATABASE_URL
 ARG DB_SCHEMA
-ARG ECTO_IPV6
+ARG DB_PASSWORD
 
 RUN mix local.hex --force && mix local.rebar --force
 RUN apk add --no-cache build-base git openssl ncurses-libs postgresql-dev postgresql-client libstdc++ ca-certificates curl
@@ -33,9 +31,8 @@ FROM alpine:3.21 AS app
 
 ARG MIX_ENV
 ARG SECRET_KEY_BASE
-ARG DATABASE_URL
 ARG DB_SCHEMA
-ARG ECTO_IPV6
+ARG DB_PASSWORD
 ARG PHX_SERVER
 
 RUN apk add --no-cache libstdc++ ncurses-libs openssl bash ca-certificates curl
