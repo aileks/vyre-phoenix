@@ -4,9 +4,13 @@ defmodule VyreWeb.AppLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) && socket.assigns[:current_user] do
-      user_id = socket.assigns.current_user.id
-      IO.puts("\n\nLIVEVIEW MOUNT: Subscribing to user:#{user_id}:status")
-      Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
+      try do
+        IO.puts("AppLive: Loading sidebar data for user #{socket.assigns.current_user.id}")
+        VyreWeb.SidebarState.load_for_user(socket.assigns.current_user)
+      rescue
+        e ->
+          IO.puts("Error loading sidebar data: #{inspect(e)}")
+      end
     end
 
     socket =
@@ -22,51 +26,28 @@ defmodule VyreWeb.AppLive do
   end
 
   @impl true
-  def handle_params(params, uri, socket) do
-    socket =
-      socket
-      |> assign(:current_path, URI.parse(uri).path)
-      |> assign(:current_uri, uri)
-      |> assign(:id, params["id"])
+  def handle_params(%{"id" => id}, uri, socket) do
+    socket = assign(socket, :current_path, URI.parse(uri).path)
+    socket = assign(socket, :current_uri, uri)
+    socket = assign(socket, :id, id)
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("close_modal", %{"id" => "settings-modal"}, socket) do
-    {:noreply, assign(socket, show_settings: false)}
-  end
+  def handle_params(_params, uri, socket) do
+    socket = assign(socket, :current_path, URI.parse(uri).path)
+    socket = assign(socket, :current_uri, uri)
 
-  @impl true
-  def handle_event("close_modal", %{"id" => "commands-modal"}, socket) do
-    {:noreply, assign(socket, show_commands: false)}
-  end
+    # If we're at the root path, explicitly load sidebar state
+    if URI.parse(uri).path == "/app" && connected?(socket) && socket.assigns[:current_user] do
+      try do
+        VyreWeb.SidebarState.load_for_user(socket.assigns.current_user)
+      rescue
+        _ -> nil
+      end
+    end
 
-  @impl true
-  def handle_info({:open_commands}, socket) do
-    {:noreply, assign(socket, show_commands: true, show_settings: false)}
-  end
-
-  @impl true
-  def handle_info({:open_settings}, socket) do
-    {:noreply, assign(socket, show_settings: true, show_commands: false)}
-  end
-
-  @impl true
-  def handle_info({:close_commands}, socket) do
-    {:noreply, assign(socket, show_commands: false)}
-  end
-
-  @impl true
-  def handle_info({:close_settings}, socket) do
-    {:noreply, assign(socket, show_settings: false)}
-  end
-
-  @impl true
-  def handle_info({:channel_status_update, channel_id, status}, socket) do
-    IO.puts("\n\nLIVEVIEW DEBUG: Received status update, forwarding to sidebar")
-
-    send_update(VyreWeb.Components.Sidebar, id: "sidebar", status_update: {channel_id, status})
     {:noreply, socket}
   end
 
@@ -104,5 +85,41 @@ defmodule VyreWeb.AppLive do
       <% end %>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("close_modal", %{"id" => "settings-modal"}, socket) do
+    {:noreply, assign(socket, show_settings: false)}
+  end
+
+  @impl true
+  def handle_event("close_modal", %{"id" => "commands-modal"}, socket) do
+    {:noreply, assign(socket, show_commands: false)}
+  end
+
+  @impl true
+  def handle_info({:open_commands}, socket) do
+    {:noreply, assign(socket, show_commands: true, show_settings: false)}
+  end
+
+  @impl true
+  def handle_info({:open_settings}, socket) do
+    {:noreply, assign(socket, show_settings: true, show_commands: false)}
+  end
+
+  @impl true
+  def handle_info({:close_commands}, socket) do
+    {:noreply, assign(socket, show_commands: false)}
+  end
+
+  @impl true
+  def handle_info({:close_settings}, socket) do
+    {:noreply, assign(socket, show_settings: false)}
+  end
+
+  @impl true
+  def handle_info({:channel_status_update, channel_id, status}, socket) do
+    VyreWeb.SidebarState.update_channel_status(channel_id, status)
+    {:noreply, socket}
   end
 end

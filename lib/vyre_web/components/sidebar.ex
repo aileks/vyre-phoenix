@@ -1,44 +1,112 @@
 defmodule VyreWeb.Components.Sidebar do
   use VyreWeb, :live_component
 
-  import Ecto.Query
-  alias Vyre.Repo
-  alias Vyre.Channels
-  alias Vyre.Channels.UserChannelStatus
-
   @impl true
   def mount(socket) do
+    {:ok,
+     assign(socket,
+       pm_expanded: true,
+       all_servers_expanded: true,
+       private_messages: [],
+       servers: []
+     )}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
     if socket.assigns[:current_user] && connected?(socket) do
+      state = VyreWeb.SidebarState.get_state()
+
       user_id = socket.assigns.current_user.id
 
-      IO.puts("\n\nSIDEBAR DEBUG: Subscribing to user:#{user_id}:status\n\n")
-      Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
+      if !socket.assigns[:status_subscribed] do
+        Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
+        socket = assign(socket, status_subscribed: true)
+      end
 
-      send(self(), :refresh_channel_statuses)
+      socket =
+        assign(
+          socket,
+          Map.take(state, [:pm_expanded, :all_servers_expanded, :private_messages, :servers])
+        )
     end
 
     {:ok, socket}
   end
 
+  # Event Handlers
+
   @impl true
-  def update(%{status_update: {channel_id, status}} = assigns, socket) do
-    IO.puts("\n\nSIDEBAR UPDATE: Processing status update for channel #{channel_id}")
+  def handle_event("toggle_pm", _, socket) do
+    # Update the shared state
+    VyreWeb.SidebarState.update_state(fn state ->
+      %{state | pm_expanded: !state.pm_expanded}
+    end)
 
-    new_assigns = Map.drop(assigns, [:status_update])
-    socket = assign(socket, new_assigns)
+    # Update local state
+    {:noreply, assign(socket, pm_expanded: !socket.assigns.pm_expanded)}
+  end
 
-    # Update servers with the new status
+  @impl true
+  def handle_event("toggle_servers", _, socket) do
+    # Update the shared state
+    VyreWeb.SidebarState.update_state(fn state ->
+      %{state | all_servers_expanded: !state.all_servers_expanded}
+    end)
+
+    # Update local state
+    {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
+  end
+
+  @impl true
+  def handle_event("toggle_server", %{"id" => server_id}, socket) do
+    # Update the servers list to toggle the specific server
+    servers =
+      Enum.map(socket.assigns.servers, fn server ->
+        if server.id == server_id do
+          Map.update(server, :expanded, !server.expanded, &(!&1))
+        else
+          server
+        end
+      end)
+
+    # Update the shared state
+    VyreWeb.SidebarState.update_state(fn state ->
+      %{state | servers: servers}
+    end)
+
+    # Update local state
+    {:noreply, assign(socket, servers: servers)}
+  end
+
+  @impl true
+  def handle_event("open_commands", _, socket) do
+    # Send a message to the parent LiveView
+    send(self(), {:open_commands})
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("open_settings", _, socket) do
+    # Send a message to the parent LiveView
+    send(self(), {:open_settings})
+    {:noreply, socket}
+  end
+
+  # Handle PubSub messages
+
+  def handle_info({:channel_status_update, channel_id, status}, socket) do
+    # Update the servers with the new status information
     updated_servers =
       Enum.map(socket.assigns.servers, fn server ->
         updated_channels =
           Enum.map(server.channels, fn channel ->
             if channel.id == channel_id do
-              IO.puts("SIDEBAR UPDATE: Updating channel #{inspect(channel.name)}")
-
-              # Make sure to handle nil computed values
+              # Merge the computed status
               current_computed = channel.computed || %{}
               updated_computed = Map.merge(current_computed, status)
-
               %{channel | computed: updated_computed}
             else
               channel
@@ -48,55 +116,33 @@ defmodule VyreWeb.Components.Sidebar do
         %{server | channels: updated_channels}
       end)
 
-    IO.puts("SIDEBAR UPDATE: UI update complete, updated servers: #{length(updated_servers)}")
+    # Update the shared state
+    VyreWeb.SidebarState.update_state(fn state ->
+      %{state | servers: updated_servers}
+    end)
 
-    {:ok, assign(socket, servers: updated_servers)}
+    # Update local state
+    {:noreply, assign(socket, servers: updated_servers)}
   end
 
-  @impl true
-  def update(assigns, socket) do
-    socket = assign(socket, assigns)
+  # Handle "refresh" message from the hook
+  def handle_info(:refresh_sidebar_state, socket) do
+    if socket.assigns[:current_user] do
+      state = VyreWeb.SidebarState.get_state()
 
-    if assigns[:current_user] do
-      current_user = assigns.current_user
-
-      if connected?(socket) do
-        # Subscribe to the status topic for this user
-        user_id = current_user.id
-        IO.puts("\n\nSIDEBAR DEBUG: Subscribing to user:#{user_id}:status")
-        Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
-      end
-
-      user_with_data =
-        Repo.preload(current_user, [
-          :sent_messages,
-          :received_messages,
-          joined_servers: [:channels],
-          owned_servers: [:channels]
-        ])
-
-      private_messages = get_user_private_messages(user_with_data)
-      servers = get_user_servers_with_status(user_with_data)
-
-      socket =
-        assign(socket,
-          pm_expanded: true,
-          all_servers_expanded: true,
-          private_messages: private_messages,
-          servers: servers
-        )
-
-      {:ok, socket}
-    else
-      # Handle case when no current_user is provided
-      {:ok,
-       assign(socket,
-         pm_expanded: true,
-         all_servers_expanded: true,
-         private_messages: [],
-         servers: []
+      {:noreply,
+       assign(
+         socket,
+         Map.take(state, [:pm_expanded, :all_servers_expanded, :private_messages, :servers])
        )}
+    else
+      {:noreply, socket}
     end
+  end
+
+  # Forward any other messages to prevent crashes
+  def handle_info(_, socket) do
+    {:noreply, socket}
   end
 
   @impl true
@@ -291,236 +337,5 @@ defmodule VyreWeb.Components.Sidebar do
       </div>
     </div>
     """
-  end
-
-  def get_channels_with_status_for_user(user) do
-    # Extract channels from preloaded user data
-    channels =
-      (user.joined_servers ++ user.owned_servers)
-      |> Enum.flat_map(fn server -> server.channels end)
-      |> Enum.uniq_by(fn channel -> channel.id end)
-
-    # Get status for all channels in one batch from cache
-    user_id = user.id
-    channel_ids = Enum.map(channels, & &1.id)
-    statuses = batch_get_channel_statuses(user_id, channel_ids)
-
-    # Combine the data
-    Enum.map(channels, fn channel ->
-      status = Map.get(statuses, channel.id, %{has_unread: false, mention_count: 0})
-      Map.put(channel, :computed, status)
-    end)
-  end
-
-  def batch_get_channel_statuses(user_id, channel_ids) do
-    # Try to get all statuses from cache first
-    cached_results =
-      Enum.map(channel_ids, fn channel_id ->
-        key = "#{user_id}:#{channel_id}"
-
-        case :ets.lookup(:channel_status_cache, key) do
-          [{^key, status}] -> {channel_id, status}
-          [] -> nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
-      |> Map.new(fn {channel_id, status} ->
-        {channel_id,
-         %{
-           has_unread: Channels.channel_has_unread?(user_id, channel_id),
-           mention_count: status.mention_count || 0
-         }}
-      end)
-
-    # For any missing channels, batch fetch from DB
-    missing_channel_ids =
-      Enum.reject(channel_ids, &Map.has_key?(cached_results, &1))
-
-    missing_statuses =
-      if Enum.empty?(missing_channel_ids) do
-        %{}
-      else
-        Repo.all(
-          from(ucs in UserChannelStatus,
-            where: ucs.user_id == ^user_id and ucs.channel_id in ^missing_channel_ids,
-            select: {ucs.channel_id, ucs}
-          )
-        )
-        |> Map.new(fn {channel_id, status} ->
-          # Cache the result
-          :ets.insert(:channel_status_cache, {"#{user_id}:#{channel_id}", status})
-
-          # Return the computed status values
-          {channel_id,
-           %{
-             has_unread: Channels.channel_has_unread?(user_id, channel_id),
-             mention_count: status.mention_count || 0
-           }}
-        end)
-      end
-
-    Map.merge(cached_results, missing_statuses)
-  end
-
-  defp get_user_private_messages(user) do
-    sent = user.sent_messages || []
-    received = user.received_messages || []
-
-    (sent ++ received)
-    |> Enum.sort_by(fn msg -> msg.inserted_at end, {:desc, DateTime})
-    |> Enum.uniq_by(fn msg ->
-      users = [msg.sender_id, msg.receiver_id] |> Enum.sort()
-      "#{users}"
-    end)
-    |> Enum.map(fn msg ->
-      # Determine if the message is unread (for received messages where the user is the receiver)
-      unread = msg.receiver_id == user.id && !msg.read
-
-      # Get the other user's information
-      other_user_id = if msg.sender_id == user.id, do: msg.receiver_id, else: msg.sender_id
-      other_user = Repo.get(Vyre.Accounts.User, other_user_id)
-
-      # Add status and username to each private message conversation
-      %{
-        id: msg.id,
-        user_id: other_user.id,
-        avatar_url: other_user.avatar_url,
-        unread: unread,
-        username: other_user.username,
-        status: other_user.status
-      }
-    end)
-  end
-
-  defp get_user_servers_with_status(user) do
-    owned = user.owned_servers || []
-    joined = user.joined_servers || []
-
-    user_id = user.id
-
-    servers =
-      (owned ++ joined)
-      |> Enum.uniq_by(fn server -> server.id end)
-      |> Enum.sort_by(fn server -> server.name end)
-      |> Repo.preload(:channels)
-
-    Enum.map(servers, fn server ->
-      channels =
-        Enum.map(server.channels, fn channel ->
-          # Efficiently check status using cache when possible
-          has_unread = get_cached_unread_status(user_id, channel.id)
-          mention_count = get_cached_mention_count(user_id, channel.id)
-
-          # Add computed properties to each channel
-          Map.put(channel, :computed, %{
-            has_unread: has_unread,
-            mention_count: mention_count
-          })
-        end)
-
-      %{server | channels: channels}
-    end)
-  end
-
-  defp get_cached_unread_status(user_id, channel_id) do
-    key = Vyre.Channels.StatusCache.make_key(user_id, channel_id)
-
-    case :ets.lookup(:channel_status_cache, key) do
-      [{^key, _status}] ->
-        # If we have a cached status, compute unread state
-        Vyre.Channels.channel_has_unread?(user_id, channel_id)
-
-      [] ->
-        # Cache miss - get directly from Channels context
-        Vyre.Channels.channel_has_unread?(user_id, channel_id)
-    end
-  end
-
-  defp get_cached_mention_count(user_id, channel_id) do
-    key = Vyre.Channels.StatusCache.make_key(user_id, channel_id)
-
-    case :ets.lookup(:channel_status_cache, key) do
-      [{^key, status}] ->
-        status.mention_count || 0
-
-      [] ->
-        Vyre.Channels.get_channel_mention_count(user_id, channel_id)
-    end
-  end
-
-  # Event handlers
-  @impl true
-  def handle_event("toggle_pm", _, socket) do
-    {:noreply, assign(socket, pm_expanded: !socket.assigns.pm_expanded)}
-  end
-
-  @impl true
-  def handle_event("toggle_servers", _, socket) do
-    {:noreply, assign(socket, all_servers_expanded: !socket.assigns.all_servers_expanded)}
-  end
-
-  @impl true
-  def handle_event("open_commands", _, socket) do
-    send(self(), {:open_commands})
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("open_settings", _, socket) do
-    send(self(), {:open_settings})
-    {:noreply, socket}
-  end
-
-  def handle_info({:invalidate_cache, key}, socket) do
-    :ets.delete(:channel_status_cache, key)
-    {:noreply, socket}
-  end
-
-  def handle_info({:channel_status_update, channel_id, status}, socket) do
-    IO.puts(
-      "\n\nSIDEBAR DEBUG: Received status update for channel #{channel_id}: #{inspect(status)}"
-    )
-
-    # Update servers with the new status
-    updated_servers =
-      Enum.map(socket.assigns.servers, fn server ->
-        # Check if this server contains the updated channel
-        contains_channel = Enum.any?(server.channels, fn ch -> ch.id == channel_id end)
-
-        if contains_channel do
-          IO.puts("SIDEBAR DEBUG: Found channel in server #{server.name}")
-          # Update the channel status
-          updated_channels =
-            Enum.map(server.channels, fn channel ->
-              if channel.id == channel_id do
-                IO.puts(
-                  "SIDEBAR DEBUG: Updating channel #{channel.name} with status: #{inspect(status)}"
-                )
-
-                # Make sure we preserve other channel data and just update the computed status
-                Map.update(channel, :computed, status, fn computed ->
-                  Map.merge(computed || %{}, status)
-                end)
-              else
-                channel
-              end
-            end)
-
-          %{server | channels: updated_channels}
-        else
-          server
-        end
-      end)
-
-    IO.puts("SIDEBAR DEBUG: Updated #{length(updated_servers)} servers with new status\n\n")
-
-    {:noreply, assign(socket, servers: updated_servers)}
-  end
-
-  def handle_info(:refresh_channel_statuses, socket) do
-    # This refreshes all channel statuses from current data
-    user = socket.assigns.current_user
-    servers = get_user_servers_with_status(user)
-    {:noreply, assign(socket, servers: servers)}
   end
 end

@@ -112,8 +112,6 @@ defmodule Vyre.Channels do
   ## ----------------------------- ##
 
   def mark_channel_as_read(user_id, channel_id, message_id \\ nil) do
-    IO.puts("\n\nCHANNELS DEBUG: Marking channel #{channel_id} as read for user #{user_id}\n\n")
-
     current_message_id = message_id || get_latest_message_id(channel_id)
 
     # Create params for the update
@@ -211,14 +209,13 @@ defmodule Vyre.Channels do
   end
 
   def broadcast_status_updates(channel_id, message) do
-    # Get all members for this channel
-    members = Servers.list_server_members()
+    channel = Channels.get_channel!(channel_id)
+    members = Servers.list_server_members(channel.server_id)
 
     # For each member, update their status
     Enum.each(members, fn member ->
       # Skip the sender of the message
       unless member.user_id == message.user_id do
-        # Calculate new status
         mention_count =
           if message.mentions_everyone do
             get_channel_mention_count(member.user_id, channel_id) + 1
