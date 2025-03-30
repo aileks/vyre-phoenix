@@ -52,8 +52,7 @@ if config_env() == :prod do
       parameters: [search_path: db_schema],
       ssl: [
         verify: :verify_peer,
-        cacertfile: "/etc/ssl/certs/prod-ca-2021.crt",
-        server_name_indication: String.to_charlist(URI.parse(System.get_env("DATABASE_URL")).host)
+        cacertfile: "/etc/ssl/certs/prod-ca-2021.crt"
       ],
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
       socket_options: maybe_ipv6
