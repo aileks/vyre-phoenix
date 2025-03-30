@@ -2,7 +2,7 @@ defmodule Vyre.Repo.Migrations.CreateUsersAuthTables do
   use Ecto.Migration
 
   def change do
-    execute "CREATE EXTENSION IF NOT EXISTS #{System.get_env("DB_SCHEMA")}.citext", ""
+    execute "CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA #{System.get_env("DB_SCHEMA")}", ""
 
     create table(:users, primary_key: false, prefix: System.get_env("DB_SCHEMA")) do
       add :id, :binary_id, primary_key: true
