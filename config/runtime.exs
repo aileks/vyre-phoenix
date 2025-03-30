@@ -24,13 +24,13 @@ if config_env() == :prod do
   db_schema =
     System.get_env("DB_SCHEMA") ||
       raise """
-        environment variable DATABASE_SCHEMA is missing.
+        environment variable DB_SCHEMA is missing.
       """
 
   db_password =
-    System.get_env("DATABASE_PASSWORD") ||
+    System.get_env("DB_PASSWORD") ||
       raise """
-        environment variable DATABASE_PASSWORD is missing.
+        environment variable DB_PASSWORD is missing.
       """
 
   # database_url =
