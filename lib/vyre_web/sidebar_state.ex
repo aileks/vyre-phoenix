@@ -152,16 +152,16 @@ defmodule VyreWeb.SidebarState do
                 _ -> false
               end
 
-            mention_count =
-              try do
-                get_cached_mention_count(user_id, channel.id)
-              rescue
-                _ -> 0
-              end
+            # mention_count =
+            #   try do
+            #     get_cached_mention_count(user_id, channel.id)
+            #   rescue
+            #     _ -> 0
+            #   end
 
             Map.put(channel, :computed, %{
-              has_unread: has_unread,
-              mention_count: mention_count
+              has_unread: has_unread
+              # mention_count: mention_count
             })
           end)
 
@@ -187,15 +187,15 @@ defmodule VyreWeb.SidebarState do
     end
   end
 
-  defp get_cached_mention_count(user_id, channel_id) do
-    key = Vyre.Channels.StatusCache.make_key(user_id, channel_id)
+  # defp get_cached_mention_count(user_id, channel_id) do
+  #   key = Vyre.Channels.StatusCache.make_key(user_id, channel_id)
 
-    case :ets.lookup(:channel_status_cache, key) do
-      [{^key, status}] ->
-        status.mention_count || 0
+  #   case :ets.lookup(:channel_status_cache, key) do
+  #     [{^key, status}] ->
+  #       status.mention_count || 0
 
-      [] ->
-        Vyre.Channels.get_channel_mention_count(user_id, channel_id)
-    end
-  end
+  #     [] ->
+  #       Vyre.Channels.get_channel_mention_count(user_id, channel_id)
+  #   end
+  # end
 end

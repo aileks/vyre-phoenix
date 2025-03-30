@@ -13,13 +13,16 @@ defmodule VyreWeb.SidebarHook do
     end
   end
 
-  # Handle channel status updates in any LiveView
   def handle_status_update({:channel_status_update, user_id, channel_id, status}, socket) do
     if user_id == socket.assigns.current_user.id do
       VyreWeb.SidebarState.update_channel_status(user_id, channel_id, status)
 
-      # Tell all sidebar components to refresh
-      send_update(VyreWeb.Components.Sidebar, id: "sidebar", status_update: {channel_id, status})
+      # send_update(VyreWeb.Components.Sidebar, id: "sidebar", status_update: {channel_id, status})
+      #
+      send_update(VyreWeb.Components.Sidebar,
+        id: "sidebar-#{user_id}",
+        status_update: {channel_id, status}
+      )
 
       {:cont, socket}
     else

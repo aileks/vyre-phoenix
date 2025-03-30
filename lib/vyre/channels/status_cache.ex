@@ -18,7 +18,7 @@ defmodule Vyre.Channels.StatusCache do
     "#{user_id}:#{channel_id}"
   end
 
-  def get_status(user_id, channel_id) do
+  def get_status(user_id, channel_id) when is_binary(user_id) and is_binary(channel_id) do
     key = make_key(user_id, channel_id)
 
     case :ets.lookup(:channel_status_cache, key) do
@@ -40,6 +40,11 @@ defmodule Vyre.Channels.StatusCache do
           {:error, :not_found}
         end
     end
+  end
+
+  # Handle nil or invalid values
+  def get_status(_user_id, _channel_id) do
+    {:error, :invalid_params}
   end
 
   def update_status(user_id, channel_id, params) do

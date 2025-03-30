@@ -19,7 +19,7 @@ defmodule VyreWeb.Components.Sidebar do
 
     # Only proceed if we have a user and are connected
     if socket.assigns[:current_user] && connected?(socket) do
-      state = VyreWeb.SidebarState.get_state()
+      state = VyreWeb.SidebarState.get_state(socket.assigns.current_user.id)
       servers_list = state.servers || []
       pm_list = state.private_messages || []
 

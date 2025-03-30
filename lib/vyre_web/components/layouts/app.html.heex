@@ -2,7 +2,7 @@
   <%= if assigns[:current_user] do %>
     <.live_component
       module={VyreWeb.Components.Sidebar}
-      id="sidebar"
+      id={"sidebar-#{@current_user.id}"}
       current_user={@current_user}
       current_path={assigns[:current_path] || assigns[:current_uri]}
     />

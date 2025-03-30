@@ -40,19 +40,20 @@ defmodule VyreWeb.ChannelLive.Show do
         user_id: user_id,
         channel_id: channel_id,
         last_read_at: DateTime.utc_now(),
-        mention_count: 0,
+        # mention_count: 0,
         # Will be filled by the task
         last_read_message_id: nil
       }
 
       Vyre.Channels.StatusCache.update_status(user_id, channel_id, status_params)
 
-      status_update = %{has_unread: false, mention_count: 0}
+      # status_update = %{has_unread: false, mention_count: 0}
+      status_update = %{has_unread: false}
 
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
         "user:#{user_id}:status",
-        {:channel_status_update, channel_id, status_update}
+        {:channel_status_update, user_id, channel_id, status_update}
       )
 
       Task.start(fn ->
@@ -99,7 +100,7 @@ defmodule VyreWeb.ChannelLive.Show do
           Phoenix.PubSub.broadcast(
             Vyre.PubSub,
             "user:#{member.user_id}:status",
-            {:channel_status_update, channel_id,
+            {:channel_status_update, member.user_id, channel_id,
              %{has_unread: true, mention_count: mention_count}}
           )
         end
@@ -151,13 +152,13 @@ defmodule VyreWeb.ChannelLive.Show do
 
       # Only if we're not currently viewing this channel
       if socket.assigns.channel.id != channel_id do
-        mention_count = if message.mentions_everyone, do: 1, else: 0
+        # mention_count = if message.mentions_everyone, do: 1, else: 0
 
         # Cache invalidation - this will force a re-fetch of status
         :ets.delete(:channel_status_cache, "#{user_id}:#{channel_id}")
 
-        # Update status in cache and broadcast
-        status_update = %{has_unread: true, mention_count: mention_count}
+        # status_update = %{has_unread: true, mention_count: mention_count}
+        status_update = %{has_unread: true}
 
         Phoenix.PubSub.broadcast(
           Vyre.PubSub,

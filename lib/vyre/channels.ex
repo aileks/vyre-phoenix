@@ -124,7 +124,8 @@ defmodule Vyre.Channels do
 
     {:ok, _} = StatusCache.update_status(user_id, channel_id, params)
 
-    status_update = %{has_unread: false, mention_count: 0}
+    # status_update = %{has_unread: false, mention_count: 0}
+    status_update = %{has_unread: false}
 
     Phoenix.PubSub.broadcast(
       Vyre.PubSub,
@@ -212,23 +213,23 @@ defmodule Vyre.Channels do
     Enum.each(members, fn member ->
       # Skip the sender of the message
       unless member.user_id == message.user_id do
-        mention_count =
-          if message.mentions_everyone do
-            get_channel_mention_count(member.user_id, channel_id) + 1
-          else
-            get_channel_mention_count(member.user_id, channel_id)
-          end
+        # mention_count =
+        #   if message.mentions_everyone do
+        #     get_channel_mention_count(member.user_id, channel_id) + 1
+        #   else
+        #     get_channel_mention_count(member.user_id, channel_id)
+        #   end
 
         status = %{
-          has_unread: true,
-          mention_count: mention_count
+          has_unread: true
+          # mention_count: mention_count
         }
 
         # Broadcast to this user's status topic
         Phoenix.PubSub.broadcast(
           Vyre.PubSub,
           "user:#{member.user_id}:status",
-          {:channel_status_update, channel_id, status}
+          {:channel_status_update, member.user_id, channel_id, status}
         )
       end
     end)
@@ -250,7 +251,7 @@ defmodule Vyre.Channels do
       user_id: user_id,
       channel_id: channel_id,
       last_read_at: DateTime.utc_now(),
-      mention_count: 0,
+      # mention_count: 0,
       last_read_message_id: message_id
     }
 
