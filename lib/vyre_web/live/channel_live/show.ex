@@ -24,18 +24,14 @@ defmodule VyreWeb.ChannelLive.Show do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(
         Vyre.PubSub,
-        Messages.user_private_message_topic(current_user_id, other_user_id)
+        Messages.conversation_topic(current_user_id, other_user_id)
       )
 
-      Phoenix.PubSub.subscribe(
-        Vyre.PubSub,
-        Messages.user_private_message_topic(other_user_id, current_user_id)
-      )
-
-      Phoenix.PubSub.subscribe(
-        Vyre.PubSub,
-        "user:#{current_user_id}:status"
-      )
+      if !socket.assigns[:status_subscribed] do
+        user_id = socket.assigns.current_user.id
+        Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{user_id}:status")
+        assign(socket, :status_subscribed, true)
+      end
 
       # Mark messages as read when entering the conversation
       Task.start(fn ->
@@ -313,25 +309,49 @@ defmodule VyreWeb.ChannelLive.Show do
   def handle_info({:new_private_message, message}, socket) do
     current_user_id = socket.assigns.current_user.id
 
+    # Only process if we're in PM mode
     if socket.assigns.pm_mode do
       other_user_id = socket.assigns.other_user.id
-      is_incoming = message.sender_id != current_user_id
 
-      # If it's incoming, mark it as read since we're viewing the conversation
-      if is_incoming do
-        Task.start(fn ->
-          Messages.mark_private_messages_as_read(current_user_id, other_user_id)
-        end)
+      # Check if this message belongs to our current conversation
+      message_belongs_to_conversation =
+        (message.sender_id == current_user_id && message.receiver_id == other_user_id) ||
+          (message.sender_id == other_user_id && message.receiver_id == current_user_id)
+
+      if message_belongs_to_conversation do
+        # Determine if incoming message (from other user to current user)
+        is_incoming = message.sender_id != current_user_id
+
+        # Mark as read if incoming
+        if is_incoming do
+          Task.start(fn ->
+            Messages.mark_private_messages_as_read(current_user_id, other_user_id)
+          end)
+        end
+
+        # Process the message
+        {:noreply,
+         socket
+         |> assign(:has_messages, true)
+         |> stream_insert(:messages, message)}
+      else
+        # Message doesn't belong to this conversation
+        {:noreply, socket}
       end
-
-      # Add the message to the UI
-      {:noreply,
-       socket
-       |> assign(:has_messages, true)
-       |> stream_insert(:messages, message)}
     else
+      # Not in PM mode
       {:noreply, socket}
     end
+  end
+
+  def handle_info({:private_message_unread, sender_id}, socket) do
+    VyreWeb.SidebarState.update_private_message_status(
+      socket.assigns.current_user.id,
+      sender_id,
+      true
+    )
+
+    {:noreply, socket}
   end
 
   def format_message_date(naive_datetime) do

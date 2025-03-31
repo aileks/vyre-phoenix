@@ -258,7 +258,7 @@ defmodule VyreWeb.Components.Sidebar do
                   <span class="flex-grow truncate">{pm.username}</span>
 
                   <%= if pm.unread do %>
-                    <div class="bg-primary-400 ml-auto h-2 w-2 rounded-full"></div>
+                    <div class="bg-warning-300 ml-auto h-2 w-2 rounded-full"></div>
                   <% end %>
                 </.link>
               <% end %>

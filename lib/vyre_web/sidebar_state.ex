@@ -98,6 +98,24 @@ defmodule VyreWeb.SidebarState do
     end)
   end
 
+  def update_private_message_status(user_id, sender_id, status) do
+    Agent.update(@registry_name, fn state ->
+      user_state = Map.get(state, user_id, default_state())
+
+      updated_pms =
+        Enum.map(user_state.private_messages, fn pm ->
+          if pm.user_id == sender_id do
+            Map.put(pm, :unread, status)
+          else
+            pm
+          end
+        end)
+
+      updated_user_state = Map.put(user_state, :private_messages, updated_pms)
+      Map.put(state, user_id, updated_user_state)
+    end)
+  end
+
   defp get_user_private_messages(user) do
     sent = user.sent_messages || []
     received = user.received_messages || []

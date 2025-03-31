@@ -240,13 +240,7 @@ defmodule Vyre.Messages do
 
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
-        user_private_message_topic(attrs.sender_id, attrs.receiver_id),
-        {:new_private_message, message_with_users}
-      )
-
-      Phoenix.PubSub.broadcast(
-        Vyre.PubSub,
-        user_private_message_topic(attrs.receiver_id, attrs.sender_id),
+        conversation_topic(attrs.sender_id, attrs.receiver_id),
         {:new_private_message, message_with_users}
       )
 
@@ -257,16 +251,10 @@ defmodule Vyre.Messages do
       )
 
       {:ok, message_with_users}
-    else
-      {:error, changeset} ->
-        IO.inspect(changeset, label: "Private message creation failed")
-        {:error, changeset}
     end
   end
 
-  # Enhance the mark_private_messages_as_read function
   def mark_private_messages_as_read(receiver_id, sender_id) do
-    # Mark all messages from sender to receiver as read
     {count, _} =
       from(pm in PrivateMessage,
         where: pm.sender_id == ^sender_id and pm.receiver_id == ^receiver_id and pm.read == false
@@ -288,5 +276,10 @@ defmodule Vyre.Messages do
 
   def user_private_message_topic(user_id, other_user_id) do
     "pm:#{user_id}:#{other_user_id}"
+  end
+
+  def conversation_topic(user1_id, user2_id) do
+    ordered_ids = [user1_id, user2_id] |> Enum.sort() |> Enum.join(":")
+    "pm:conversation:#{ordered_ids}"
   end
 end
