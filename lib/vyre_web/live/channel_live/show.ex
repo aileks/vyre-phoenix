@@ -335,7 +335,6 @@ defmodule VyreWeb.ChannelLive.Show do
   end
 
   def format_message_date(naive_datetime) do
-    IO.inspect(naive_datetime)
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_date()
     message_date = NaiveDateTime.to_date(naive_datetime)
     formatted_time = format_time(NaiveDateTime.to_time(naive_datetime))
