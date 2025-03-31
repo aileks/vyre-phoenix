@@ -227,11 +227,12 @@ defmodule VyreWeb.Components.Sidebar do
             <div class="mt-1 space-y-1">
               <%= for pm <- @private_messages do %>
                 <.link
-                  navigate={~p"/app/channels/#{pm.user_id}"}
+                  navigate={~p"/app/channels/u-#{pm.user_id}"}
                   class={[
                     "flex items-center rounded-xs px-3 py-2",
-                    @current_path == "/app/channels/#{pm.id}" && "bg-primary-900 text-primary-300",
-                    @current_path != "/app/channels/#{pm.id}" &&
+                    @current_path == "/app/channels/u-#{pm.user_id}" &&
+                      "bg-primary-900 text-primary-300",
+                    @current_path != "/app/channels/u-#{pm.user_id}" &&
                       "text-cybertext-400 hover:bg-midnight-700"
                   ]}
                 >
@@ -295,16 +296,16 @@ defmodule VyreWeb.Components.Sidebar do
                     {server.name}
                   </div>
 
-                  <div class="mt-1 ml-2 space-y-1">
+                  <div class="mt-1 ml-1 space-y-1">
                     <%= for channel <- server.channels do %>
                       <.link
                         navigate={~p"/app/channels/#{channel.id}"}
                         class={[
                           "flex items-center justify-between rounded-xs p-1",
-                          @current_path == "/app/channels/#{server.id}-#{channel.name}" &&
-                            "bg-primary-900 text-primary-300",
-                          @current_path != "/app/channels/#{server.id}-#{channel.name}" &&
-                            "text-cybertext-400 hover:bg-midnight-700"
+                          @current_path == "/app/channels/#{channel.id}" &&
+                            "bg-primary-900 text-primary-200",
+                          @current_path != "/app/channels/#{channel.id}" &&
+                            "hover:bg-midnight-600"
                         ]}
                       >
                         <div><span class="text-electric-100">#</span> {channel.name}</div>

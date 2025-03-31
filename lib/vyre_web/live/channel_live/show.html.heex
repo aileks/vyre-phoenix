@@ -1,19 +1,28 @@
 <div class="flex h-full flex-col">
   <div class="bg-midnight-800 flex items-center border-b border-gray-700 px-4 py-3">
     <div class="flex-1">
-      <h2 class="text-xl font-semibold font-mono flex items-center">
-        <span class="text-verdant-400 mr-2">#</span>
-        {@channel.name}
-      </h2>
-
-      <p class="text-cybertext-400 text-sm">{@channel.topic}</p>
+      <%= if @pm_mode do %>
+        <h2 class="text-xl font-semibold font-mono flex items-center">
+          <span class="text-electric-400 mr-2">@</span>
+          {@other_user.username}
+        </h2>
+        <p class="text-cybertext-400 text-sm">
+          <%= if @other_user.status == "online" do %>
+            <span class="text-success-500">Online</span>
+          <% else %>
+            <span class="text-cybertext-500">{String.capitalize(@other_user.status)}</span>
+          <% end %>
+        </p>
+      <% else %>
+        <h2 class="text-xl font-semibold font-mono flex items-center">
+          <span class="text-verdant-400 mr-2">#</span>
+          {@channel.name}
+        </h2>
+        <p class="text-cybertext-400 text-sm">{@channel.topic}</p>
+      <% end %>
     </div>
 
     <div class="flex space-x-4">
-      <button class="cursor-pointer">
-        <Heroicons.icon name="users" class="h-5 w-5 fill-white" />
-      </button>
-
       <button class="cursor-pointer">
         <Heroicons.icon name="information-circle" class="h-5 w-5" />
       </button>
@@ -37,19 +46,43 @@
           <div class="flex items-start">
             <img
               class="user-avatar h-12 w-12"
-              src={message.user.avatar_url}
-              alt={message.user.username}
+              src={
+                if @pm_mode,
+                  do:
+                    if(message.sender_id == @current_user.id,
+                      do: @current_user.avatar_url,
+                      else: @other_user.avatar_url
+                    ),
+                  else: message.user.avatar_url
+              }
+              alt={
+                if @pm_mode,
+                  do:
+                    if(message.sender_id == @current_user.id,
+                      do: @current_user.username,
+                      else: @other_user.username
+                    ),
+                  else: message.user.username
+              }
             />
 
             <div class="flex-1">
               <div class="chat-header">
-                <span class="chat-display-name">{message.user.username}</span>
+                <span class="chat-display-name">
+                  <%= if @pm_mode do %>
+                    {if message.sender_id == @current_user.id,
+                      do: @current_user.username,
+                      else: @other_user.username}
+                  <% else %>
+                    {message.user.username}
+                  <% end %>
+                </span>
 
                 <span class="chat-timestamp">
                   {format_message_date(message.inserted_at)}
                 </span>
 
-                <%= if message.edited do %>
+                <%= if Map.get(message, :edited) do %>
                   <span class="text-gray-300 italic text-xs ml-1">(edited)</span>
                 <% end %>
               </div>
@@ -77,7 +110,9 @@
           id="message-input"
           type="text"
           name="content"
-          placeholder={"Message ##{@channel.name}"}
+          placeholder={
+            if @pm_mode, do: "Message @#{@other_user.username}", else: "Message ##{@channel.name}"
+          }
           class="bg-midnight-700 w-full rounded-xs border border-midnight-100 px-4 py-2"
           autocomplete="off"
         />

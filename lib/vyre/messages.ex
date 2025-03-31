@@ -217,4 +217,74 @@ defmodule Vyre.Messages do
     |> Repo.get!(message_id)
     |> Repo.preload(:user)
   end
+
+  def list_private_messages_between(user1_id, user2_id) do
+    Repo.all(
+      from pm in PrivateMessage,
+        where:
+          (pm.sender_id == ^user1_id and pm.receiver_id == ^user2_id) or
+            (pm.sender_id == ^user2_id and pm.receiver_id == ^user1_id),
+        order_by: [asc: pm.inserted_at],
+        preload: [:sender, :receiver]
+    )
+  end
+
+  def get_private_message_with_users(message_id) do
+    Repo.get!(PrivateMessage, message_id)
+    |> Repo.preload([:sender, :receiver])
+  end
+
+  def create_and_broadcast_private_message(attrs) do
+    with {:ok, message} <- create_private_message(attrs) do
+      message_with_users = get_private_message_with_users(message.id)
+
+      # Broadcast to both users
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        user_private_message_topic(attrs.sender_id, attrs.receiver_id),
+        {:new_private_message, message_with_users}
+      )
+
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        user_private_message_topic(attrs.receiver_id, attrs.sender_id),
+        {:new_private_message, message_with_users}
+      )
+
+      # Also broadcast an unread notification to the recipient
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        "user:#{attrs.receiver_id}:status",
+        {:private_message_unread, attrs.sender_id}
+      )
+
+      {:ok, message_with_users}
+    end
+  end
+
+  # Enhance the mark_private_messages_as_read function
+  def mark_private_messages_as_read(receiver_id, sender_id) do
+    # Mark all messages from sender to receiver as read
+    {count, _} =
+      from(pm in PrivateMessage,
+        where: pm.sender_id == ^sender_id and pm.receiver_id == ^receiver_id and pm.read == false
+      )
+      |> Repo.update_all(set: [read: true, updated_at: DateTime.utc_now()])
+
+    # Broadcast updated status if messages were marked as read
+    if count > 0 do
+      # Broadcast to the receiver's status topic that messages from this sender are now read
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        "user:#{receiver_id}:status",
+        {:private_message_read, sender_id}
+      )
+    end
+
+    {:ok, count}
+  end
+
+  def user_private_message_topic(user_id, other_user_id) do
+    "pm:#{user_id}:#{other_user_id}"
+  end
 end

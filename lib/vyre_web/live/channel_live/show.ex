@@ -6,14 +6,64 @@ defmodule VyreWeb.ChannelLive.Show do
   alias Vyre.Servers
 
   @impl true
-  def mount(%{"id" => channel_id}, _session, socket) do
+  def mount(%{"id" => id}, _session, socket) do
+    if String.starts_with?(id, "u-") do
+      # Handle private message case
+      other_user_id = String.replace_prefix(id, "u-", "")
+      mount_private_messages(other_user_id, socket)
+    else
+      # Handle regular channel case
+      channel_id = id
+      mount_channel(channel_id, socket)
+    end
+  end
+
+  def mount_private_messages(other_user_id, socket) do
+    current_user_id = socket.assigns.current_user.id
+
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Vyre.PubSub, "channel:#{channel_id}")
+      Phoenix.PubSub.subscribe(
+        Vyre.PubSub,
+        Messages.user_private_message_topic(current_user_id, other_user_id)
+      )
 
       Phoenix.PubSub.subscribe(
         Vyre.PubSub,
-        "user:#{socket.assigns.current_user.id}:status"
+        Messages.user_private_message_topic(other_user_id, current_user_id)
       )
+
+      Phoenix.PubSub.subscribe(
+        Vyre.PubSub,
+        "user:#{current_user_id}:status"
+      )
+
+      # Mark messages as read when entering the conversation
+      Task.start(fn ->
+        Messages.mark_private_messages_as_read(current_user_id, other_user_id)
+      end)
+    end
+
+    other_user = Vyre.Accounts.get_user!(other_user_id)
+
+    messages = Messages.list_private_messages_between(current_user_id, other_user_id)
+    has_messages = length(messages) > 0
+
+    {:ok,
+     socket
+     |> assign(:current_user, socket.assigns.current_user)
+     |> assign(:has_messages, has_messages)
+     |> assign(:pm_mode, true)
+     |> assign(:other_user, other_user)
+     |> assign(:channel, nil)
+     |> stream(:messages, messages, dom_id: &"message-#{&1.id}")
+     |> assign(:message_form, to_form(%{"content" => ""}))}
+  end
+
+  def mount_channel(channel_id, socket) do
+    # Existing channel mount code goes here
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Vyre.PubSub, "channel:#{channel_id}")
+      Phoenix.PubSub.subscribe(Vyre.PubSub, "user:#{socket.assigns.current_user.id}:status")
     end
 
     # Fetch the channel and its messages
@@ -25,6 +75,8 @@ defmodule VyreWeb.ChannelLive.Show do
      socket
      |> assign(:current_user, socket.assigns.current_user)
      |> assign(:has_messages, has_messages)
+     # Flag to indicate channel mode
+     |> assign(:pm_mode, false)
      |> assign(:channel, channel)
      |> stream(:messages, messages, dom_id: &"message-#{&1.id}")
      |> assign(:message_form, to_form(%{"content" => ""}))}
@@ -33,86 +85,157 @@ defmodule VyreWeb.ChannelLive.Show do
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
     user_id = socket.assigns.current_user.id
-    channel_id = id
 
-    if connected?(socket) do
-      status_params = %{
-        user_id: user_id,
-        channel_id: channel_id,
-        last_read_at: DateTime.utc_now(),
-        # mention_count: 0,
-        # Will be filled by the task
-        last_read_message_id: nil
-      }
+    if String.starts_with?(id, "u-") do
+      # Private message handling
+      other_user_id = String.replace_prefix(id, "u-", "")
 
-      Vyre.Channels.StatusCache.update_status(user_id, channel_id, status_params)
+      if connected?(socket) do
+        # Mark private messages as read
+        Vyre.Messages.mark_private_messages_as_read(user_id, other_user_id)
+      end
 
-      # status_update = %{has_unread: false, mention_count: 0}
-      status_update = %{has_unread: false}
+      {:noreply, socket}
+    else
+      # Regular channel handling
+      channel_id = id
 
-      Phoenix.PubSub.broadcast(
-        Vyre.PubSub,
-        "user:#{user_id}:status",
-        {:channel_status_update, user_id, channel_id, status_update}
-      )
+      if connected?(socket) do
+        status_params = %{
+          user_id: user_id,
+          channel_id: channel_id,
+          last_read_at: DateTime.utc_now(),
+          last_read_message_id: nil
+        }
 
-      Task.start(fn ->
-        Channels.mark_channel_as_read(user_id, channel_id)
-      end)
+        Vyre.Channels.StatusCache.update_status(user_id, channel_id, status_params)
+        status_update = %{has_unread: false}
+
+        Phoenix.PubSub.broadcast(
+          Vyre.PubSub,
+          "user:#{user_id}:status",
+          {:channel_status_update, user_id, channel_id, status_update}
+        )
+
+        Task.start(fn ->
+          Channels.mark_channel_as_read(user_id, channel_id)
+        end)
+      end
+
+      {:noreply, socket}
     end
-
-    {:noreply, socket}
   end
+
+  # @impl true
+  # def handle_params(%{"id" => id}, uri, socket) do
+  #   user_id = socket.assigns.current_user.id
+  #   channel_id = id
+  #   current_path = URI.parse(uri).path
+  #   IO.inspect(current_path)
+
+  #   if connected?(socket) do
+  #     status_params = %{
+  #       user_id: user_id,
+  #       channel_id: channel_id,
+  #       last_read_at: DateTime.utc_now(),
+  #       # mention_count: 0,
+  #       # Will be filled by the task
+  #       last_read_message_id: nil
+  #     }
+
+  #     Vyre.Channels.StatusCache.update_status(user_id, channel_id, status_params)
+
+  #     # status_update = %{has_unread: false, mention_count: 0}
+  #     status_update = %{has_unread: false}
+
+  #     Phoenix.PubSub.broadcast(
+  #       Vyre.PubSub,
+  #       "user:#{user_id}:status",
+  #       {:channel_status_update, user_id, channel_id, status_update}
+  #     )
+
+  #     Task.start(fn ->
+  #       Channels.mark_channel_as_read(user_id, channel_id)
+  #     end)
+  #   end
+
+  #   {:noreply, assign(socket, :current_path, current_path)}
+  # end
 
   @impl true
   def handle_event("send_message", %{"content" => content}, socket) do
     user_id = socket.assigns.current_user.id
     channel_id = socket.assigns.channel.id
 
-    {:ok, message} =
-      Messages.create_message(%{
-        content: content,
-        user_id: user_id,
-        channel_id: channel_id,
-        mentions_everyone: String.contains?(content, "@everyone")
-      })
+    if socket.assigns.pm_mode do
+      IO.puts("\n\nSending a new private message: #{inspect(content)}")
+      other_user_id = socket.assigns.other_user.id
 
-    message_with_user = Messages.get_message_with_user(message.id)
+      {:ok, message} =
+        Messages.create_and_broadcast_private_message(%{
+          content: content,
+          sender_id: user_id,
+          receiver_id: other_user_id,
+          read: false
+        })
 
-    # Broadcast to channel subscribers
-    Phoenix.PubSub.broadcast(
-      Vyre.PubSub,
-      "channel:#{channel_id}",
-      {:new_message, message_with_user}
-    )
+      {:noreply,
+       socket
+       |> assign(:has_messages, true)
+       |> assign(:message_form, to_form(%{"content" => ""}))
+       |> push_event("clear_input", %{})
+       |> stream_insert(:messages, message)}
+    else
+      {:ok, message} =
+        Messages.create_message(%{
+          content: content,
+          user_id: user_id,
+          channel_id: channel_id,
+          mentions_everyone: String.contains?(content, "@everyone")
+        })
 
-    # Broadcast unread status to all server members EXCEPT sender
-    Task.start(fn ->
-      channel = Channels.get_channel!(channel_id)
-      server_members = Servers.list_server_members(channel.server_id)
+      message_with_user = Messages.get_message_with_user(message.id)
 
-      Enum.each(server_members, fn member ->
-        unless member.user_id == user_id do
-          # Calculate mention count
-          mention_count = if message.mentions_everyone, do: 1, else: 0
+      # Broadcast to channel subscribers
+      Phoenix.PubSub.broadcast(
+        Vyre.PubSub,
+        "channel:#{channel_id}",
+        {:new_message, message_with_user}
+      )
 
-          # Broadcast unread status to this member
-          Phoenix.PubSub.broadcast(
-            Vyre.PubSub,
-            "user:#{member.user_id}:status",
-            {:channel_status_update, member.user_id, channel_id,
-             %{has_unread: true, mention_count: mention_count}}
-          )
-        end
+      # Broadcast unread status to all server members EXCEPT sender
+      Task.start(fn ->
+        channel = Channels.get_channel!(channel_id)
+        server_members = Servers.list_server_members(channel.server_id)
+
+        Enum.each(server_members, fn member ->
+          unless member.user_id == user_id do
+            # mention_count = if message.mentions_everyone, do: 1, else: 0
+
+            # Broadcast unread status to this member
+            Phoenix.PubSub.broadcast(
+              Vyre.PubSub,
+              "user:#{member.user_id}:status",
+              {:channel_status_update, member.user_id, channel_id, %{has_unread: true}}
+            )
+
+            # Phoenix.PubSub.broadcast(
+            #   Vyre.PubSub,
+            #   "user:#{member.user_id}:status",
+            #   {:channel_status_update, member.user_id, channel_id,
+            #    %{has_unread: true, mention_count: mention_count}}
+            # )
+          end
+        end)
       end)
-    end)
 
-    {:noreply,
-     socket
-     |> assign(:has_messages, true)
-     |> assign(:message_form, to_form(%{"content" => ""}))
-     |> push_event("clear_input", %{})
-     |> stream_insert(:messages, message_with_user)}
+      {:noreply,
+       socket
+       |> assign(:has_messages, true)
+       |> assign(:message_form, to_form(%{"content" => ""}))
+       |> push_event("clear_input", %{})
+       |> stream_insert(:messages, message_with_user)}
+    end
   end
 
   @impl true
@@ -182,6 +305,33 @@ defmodule VyreWeb.ChannelLive.Show do
       VyreWeb.SidebarState.update_channel_status(user_id, channel_id, status)
       updated_servers = VyreWeb.SidebarState.get_state(user_id).servers
       {:noreply, assign(socket, servers: updated_servers)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:new_private_message, message}, socket) do
+    IO.puts("\n\nNew private message received #{inspect(message)}")
+
+    current_user_id = socket.assigns.current_user.id
+
+    if socket.assigns.pm_mode do
+      other_user_id = socket.assigns.other_user.id
+      is_incoming = message.sender_id != current_user_id
+
+      # If it's incoming, mark it as read since we're viewing the conversation
+      if is_incoming do
+        Task.start(fn ->
+          Messages.mark_private_messages_as_read(current_user_id, other_user_id)
+        end)
+      end
+
+      # Add the message to the UI
+      {:noreply,
+       socket
+       |> assign(:has_messages, true)
+       |> stream_insert(:messages, message)}
     else
       {:noreply, socket}
     end
