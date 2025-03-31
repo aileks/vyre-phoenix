@@ -8,6 +8,7 @@ defmodule Vyre.Messages.PrivateMessage do
   schema "private_messages" do
     field :read, :boolean, default: false
     field :content, :string
+    field :edited, :boolean, default: false
 
     belongs_to :sender, Vyre.Accounts.User, foreign_key: :sender_id
     belongs_to :receiver, Vyre.Accounts.User, foreign_key: :receiver_id
@@ -18,7 +19,7 @@ defmodule Vyre.Messages.PrivateMessage do
   @doc false
   def changeset(private_message, attrs) do
     private_message
-    |> cast(attrs, [:sender_id, :receiver_id, :content])
-    |> validate_required([:sender_id, :receiver_id, :content, :read])
+    |> cast(attrs, [:sender_id, :receiver_id, :content, :read])
+    |> validate_required([:sender_id, :receiver_id, :content])
   end
 end

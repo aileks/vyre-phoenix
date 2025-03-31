@@ -3,21 +3,19 @@
     <div class="flex-1">
       <%= if @pm_mode do %>
         <h2 class="text-xl font-semibold font-mono flex items-center">
-          <span class="text-electric-400 mr-2">@</span>
+          <span class="text-electric-600">@</span>
           {@other_user.username}
         </h2>
+
         <p class="text-cybertext-400 text-sm">
-          <%= if @other_user.status == "online" do %>
-            <span class="text-success-500">Online</span>
-          <% else %>
-            <span class="text-cybertext-500">{String.capitalize(@other_user.status)}</span>
-          <% end %>
+          {String.capitalize(@other_user.status)}
         </p>
       <% else %>
         <h2 class="text-xl font-semibold font-mono flex items-center">
           <span class="text-verdant-400 mr-2">#</span>
           {@channel.name}
         </h2>
+
         <p class="text-cybertext-400 text-sm">{@channel.topic}</p>
       <% end %>
     </div>
@@ -38,56 +36,47 @@
     <%= if not @has_messages do %>
       <div class="text-center py-8">
         <p class="text-lg">No messages yet</p>
-        <p class="text-sm">Be the first to start the conversation!</p>
+        <p class="text-sm">Be the first to start a conversation!</p>
       </div>
     <% else %>
       <%= for {dom_id, message} <- @streams.messages do %>
         <div class="chat-message-group" id={dom_id}>
-          <div class="flex items-start">
+          <div class="flex items-start px-1 rounded-xs hover:bg-midnight-600">
             <img
-              class="user-avatar h-12 w-12"
+              class="user-avatar self-center h-12 w-12"
               src={
                 if @pm_mode,
-                  do:
-                    if(message.sender_id == @current_user.id,
-                      do: @current_user.avatar_url,
-                      else: @other_user.avatar_url
-                    ),
+                  do: message.sender.avatar_url,
                   else: message.user.avatar_url
               }
               alt={
                 if @pm_mode,
-                  do:
-                    if(message.sender_id == @current_user.id,
-                      do: @current_user.username,
-                      else: @other_user.username
-                    ),
+                  do: message.sender.username,
                   else: message.user.username
               }
             />
 
             <div class="flex-1">
               <div class="chat-header">
+                <!-- Username rendering -->
                 <span class="chat-display-name">
                   <%= if @pm_mode do %>
-                    {if message.sender_id == @current_user.id,
-                      do: @current_user.username,
-                      else: @other_user.username}
+                    {message.sender.username}
                   <% else %>
                     {message.user.username}
                   <% end %>
                 </span>
-
+                <!-- Timestamp -->
                 <span class="chat-timestamp">
                   {format_message_date(message.inserted_at)}
                 </span>
-
-                <%= if Map.get(message, :edited) do %>
+                <!-- Edited status -->
+                <%= if Map.get(message, :edited, false) do %>
                   <span class="text-gray-300 italic text-xs ml-1">(edited)</span>
                 <% end %>
               </div>
-
-              <div class="px-2 py-1 rounded-xs">
+              <!-- Message content -->
+              <div class="px-2 py-1 mt-0 ml-2">
                 {message.content}
               </div>
             </div>

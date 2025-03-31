@@ -238,7 +238,6 @@ defmodule Vyre.Messages do
     with {:ok, message} <- create_private_message(attrs) do
       message_with_users = get_private_message_with_users(message.id)
 
-      # Broadcast to both users
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
         user_private_message_topic(attrs.sender_id, attrs.receiver_id),
@@ -251,7 +250,6 @@ defmodule Vyre.Messages do
         {:new_private_message, message_with_users}
       )
 
-      # Also broadcast an unread notification to the recipient
       Phoenix.PubSub.broadcast(
         Vyre.PubSub,
         "user:#{attrs.receiver_id}:status",
@@ -259,6 +257,10 @@ defmodule Vyre.Messages do
       )
 
       {:ok, message_with_users}
+    else
+      {:error, changeset} ->
+        IO.inspect(changeset, label: "Private message creation failed")
+        {:error, changeset}
     end
   end
 

@@ -131,7 +131,6 @@ defmodule VyreWeb.ChannelLive.Show do
   #   user_id = socket.assigns.current_user.id
   #   channel_id = id
   #   current_path = URI.parse(uri).path
-  #   IO.inspect(current_path)
 
   #   if connected?(socket) do
   #     status_params = %{
@@ -165,10 +164,8 @@ defmodule VyreWeb.ChannelLive.Show do
   @impl true
   def handle_event("send_message", %{"content" => content}, socket) do
     user_id = socket.assigns.current_user.id
-    channel_id = socket.assigns.channel.id
 
     if socket.assigns.pm_mode do
-      IO.puts("\n\nSending a new private message: #{inspect(content)}")
       other_user_id = socket.assigns.other_user.id
 
       {:ok, message} =
@@ -186,6 +183,8 @@ defmodule VyreWeb.ChannelLive.Show do
        |> push_event("clear_input", %{})
        |> stream_insert(:messages, message)}
     else
+      channel_id = socket.assigns.channel.id
+
       {:ok, message} =
         Messages.create_message(%{
           content: content,
@@ -312,8 +311,6 @@ defmodule VyreWeb.ChannelLive.Show do
 
   @impl true
   def handle_info({:new_private_message, message}, socket) do
-    IO.puts("\n\nNew private message received #{inspect(message)}")
-
     current_user_id = socket.assigns.current_user.id
 
     if socket.assigns.pm_mode do
@@ -338,6 +335,7 @@ defmodule VyreWeb.ChannelLive.Show do
   end
 
   def format_message_date(naive_datetime) do
+    IO.inspect(naive_datetime)
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_date()
     message_date = NaiveDateTime.to_date(naive_datetime)
     formatted_time = format_time(NaiveDateTime.to_time(naive_datetime))
