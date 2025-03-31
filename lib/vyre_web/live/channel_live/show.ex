@@ -305,6 +305,10 @@ defmodule VyreWeb.ChannelLive.Show do
     end
   end
 
+  def handle_info({:private_message_read, _sender_id}, socket) do
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:new_private_message, message}, socket) do
     current_user_id = socket.assigns.current_user.id
